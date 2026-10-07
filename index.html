@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>KYFR — Know Your Financial Reality</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --k-ground:#141414; --k-surface:#232323; --k-raised:#333; --k-raised2:#3d3d3d;
+  --k-ink:#fff; --k-ink-soft:#DACBEB; --k-muted:#9b93a5; --k-line:#3a3a3a;
+  --k-accent:#9F5FE5; --k-accent-strong:#801DEE; --k-accent-soft:#2A0552; --k-accent-ink:#E9E1F1; --k-accent-track:#3D057B;
+  --k-safe:#14ED60; --k-safe-bg:#032810;
+  --k-tradeoff:#F1AA3E; --k-tradeoff-bg:#342104;
+  --k-harm:#F13E41; --k-harm-bg:#340405;
+  --k-gold:#FFC24B; --k-gold-bg:#2E1F00;
+  --k-cta-a:#F03BBD; --k-cta-b:#93066B;
+  --k-border-grad:linear-gradient(90deg,rgba(240,59,189,.7) 0%,rgba(255,194,75,.7) 100%);
+  --k-font:'Quicksand',-apple-system,sans-serif;
+  --k-display:'Quicksand',-apple-system,sans-serif;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --ease-in:cubic-bezier(.55,0,.45,1);
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--k-font); background:var(--k-ground); color:var(--k-ink);
+  overflow:hidden; position:fixed; inset:0; width:100%;
+  -webkit-font-smoothing:antialiased;
+}
+button,input{font-family:inherit}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important;} }
+
+/* ── Ambient backdrop ───────────────────────────────────────── */
+.backdrop{position:fixed;inset:0;overflow:hidden;z-index:0;background:var(--k-ground)}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;will-change:transform}
+.blob1{width:60vmax;height:60vmax;background:radial-gradient(circle,var(--k-accent-strong),transparent 70%);top:-25vmax;left:-20vmax;animation:drift1 26s ease-in-out infinite}
+.blob2{width:50vmax;height:50vmax;background:radial-gradient(circle,var(--k-cta-a),transparent 70%);bottom:-22vmax;right:-18vmax;opacity:.22;animation:drift2 32s ease-in-out infinite}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(6vmax,4vmax) scale(1.08)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-5vmax,-6vmax) scale(1.1)}}
+
+/* ── App shell ──────────────────────────────────────────────── */
+#app{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+.layout{position:relative;width:100%;height:100%;display:flex}
+.stage{position:relative;width:100%;height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column}
+.side-panel{display:none}
+@media (min-width:640px){
+  .stage{height:min(880px,94vh);max-height:920px;border-radius:28px;overflow:hidden;
+    box-shadow:0 40px 100px -30px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.06);background:var(--k-ground)}
+}
+/* ── Desktop: a real docked split-view, not a phone floating on a laptop ── */
+@media (min-width:1024px){
+  .layout{max-width:1080px;height:min(880px,92vh);max-height:920px;margin:0 auto;border-radius:28px;overflow:hidden;
+    box-shadow:0 40px 100px -30px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.06)}
+  .side-panel{display:flex;flex-direction:column;justify-content:space-between;flex:1;min-width:0;position:relative;overflow:hidden;
+    padding:44px;background:linear-gradient(160deg,#231531,var(--k-ground) 72%)}
+  .side-watermark{position:absolute;right:-70px;bottom:-70px;width:340px;height:340px;opacity:.05;filter:grayscale(1) brightness(3);pointer-events:none}
+  .side-brand{display:flex;align-items:center;gap:11px;position:relative;z-index:2}
+  .side-logo{width:34px;height:34px;border-radius:10px;overflow:hidden;flex:none;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  .side-logo img{width:100%;height:100%;object-fit:cover;display:block}
+  .side-brand span{font-weight:800;font-size:15px;letter-spacing:.5px}
+  .side-content{position:relative;z-index:2;transition:opacity .4s var(--ease)}
+  .side-label{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--k-accent-ink);opacity:.75;margin-bottom:12px}
+  .side-headline{font-family:var(--k-display);font-weight:600;font-size:clamp(26px,2.6vw,36px);line-height:1.25;max-width:15ch;text-wrap:balance}
+  .stage{width:480px;flex:none;max-width:480px;height:100%;margin:0;border-radius:0;box-shadow:none;background:var(--k-ground);border-left:1px solid var(--k-line)}
+}
+.v-center{min-height:100%;display:flex;flex-direction:column;justify-content:center}
+
+/* ── Progress rail ──────────────────────────────────────────── */
+.progress-rail{position:relative;z-index:5;display:flex;gap:6px;padding:18px 22px 0;flex:none}
+.progress-rail[hidden]{display:none}
+.progress-seg{flex:1;height:4px;border-radius:100px;background:var(--k-line);overflow:hidden}
+.progress-seg i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--k-accent),var(--k-cta-a));border-radius:100px;transition:width .6s var(--ease)}
+
+/* ── Screens ────────────────────────────────────────────────── */
+.screens{position:relative;flex:1;min-height:0}
+.screen{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  padding:28px 26px 26px;opacity:0;visibility:hidden;pointer-events:none;
+  transform:translateX(24px) scale(.98);
+  transition:opacity .5s var(--ease), transform .5s var(--ease), visibility 0s .5s;
+}
+.screen.active{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(0) scale(1);transition:opacity .5s var(--ease), transform .5s var(--ease), visibility 0s}
+.screen.leaving{opacity:0;transform:translateX(-24px) scale(.98);transition:opacity .38s var(--ease-in), transform .38s var(--ease-in)}
+.screen-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0 -26px;padding:0 26px}
+.screen-scroll::-webkit-scrollbar{width:0}
+
+/* ── Typography ─────────────────────────────────────────────── */
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--k-accent);display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+h1.q-title{font-family:var(--k-display);font-weight:600;font-size:clamp(24px,5.5vw,32px);line-height:1.22;text-wrap:balance;margin-bottom:10px}
+.q-sub{font-size:14.5px;color:var(--k-muted);line-height:1.55;margin-bottom:28px;max-width:44ch}
+
+/* ── Currency fields ────────────────────────────────────────── */
+.q-field{display:block;margin-bottom:20px}
+.q-field-label{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:700;color:var(--k-ink-soft);margin-bottom:9px}
+.q-field-label .skip{font-size:12px;font-weight:600;color:var(--k-muted);text-decoration:underline;text-underline-offset:2px;cursor:pointer;background:none;border:none;padding:0}
+.q-input-wrap{display:flex;align-items:center;background:var(--k-surface);border:1.5px solid var(--k-line);border-radius:16px;padding:0 18px;transition:border-color .25s var(--ease),background .25s var(--ease);position:relative}
+.q-input-wrap:focus-within{border-color:var(--k-accent);background:#28202f}
+.q-input-wrap.disabled{opacity:.4;pointer-events:none}
+.q-prefix{font-family:var(--k-display);font-size:22px;font-weight:600;color:var(--k-muted);flex:none;margin-right:6px}
+.q-input{flex:1;background:none;border:none;outline:none;color:var(--k-ink);font-family:var(--k-display);font-size:24px;font-weight:600;padding:16px 0;width:100%;min-width:0}
+.q-input::placeholder{color:#5c5468}
+.q-hint{display:block;font-size:12px;color:var(--k-muted);margin-top:7px;line-height:1.4}
+.q-unit-suffix{font-size:13px;color:var(--k-muted);font-weight:700;flex:none;margin-left:6px}
+
+/* stepper (age / dependents) */
+.stepper{display:flex;align-items:center;justify-content:center;gap:22px;background:var(--k-surface);border:1.5px solid var(--k-line);border-radius:20px;padding:22px}
+.stepper-btn{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--k-line);background:var(--k-raised);color:var(--k-ink);font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s var(--ease),background .2s;flex:none}
+.stepper-btn:active{transform:scale(.9);background:var(--k-accent-soft)}
+.stepper-val{font-family:var(--k-display);font-size:40px;font-weight:600;min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
+.stepper-cap{text-align:center;font-size:12px;color:var(--k-muted);margin-top:10px}
+
+/* toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--k-surface);border:1.5px solid var(--k-line);border-radius:16px;padding:16px 18px;margin-bottom:18px;cursor:pointer;user-select:none}
+.toggle-row span{font-size:13.5px;font-weight:700;color:var(--k-ink-soft)}
+.toggle{width:46px;height:28px;border-radius:100px;background:var(--k-raised2);position:relative;flex:none;transition:background .25s var(--ease)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .25s var(--ease);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.toggle.on{background:var(--k-accent)}
+.toggle.on::after{transform:translateX(18px)}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn-row{flex:none;display:flex;gap:10px;padding-top:16px}
+.btn{border-radius:100px;font-family:var(--k-font);font-weight:700;font-size:15px;cursor:pointer;transition:transform .15s var(--ease),opacity .2s,box-shadow .25s,background .2s;-webkit-appearance:none;display:flex;justify-content:center;align-items:center;gap:8px}
+.btn:active{transform:scale(.97)}
+.btn-primary{flex:1;padding:12px 20px;color:var(--k-ink);border:1px solid transparent;
+  background-image:linear-gradient(0deg,#61224F 0%,#400F32 100%),var(--k-border-grad);
+  background-origin:padding-box,border-box;background-clip:padding-box,border-box;
+  box-shadow:0 10px 28px -10px rgba(240,59,189,.35)}
+.btn-primary[disabled]{padding:16px 24px;color:var(--k-muted);border:1px solid transparent;
+  background-image:linear-gradient(180deg,#271221 0%,#351A2D 100%),var(--k-border-grad);
+  background-origin:padding-box,border-box;background-clip:padding-box,border-box;
+  box-shadow:none;opacity:1;pointer-events:none}
+.btn-ghost{padding:16px 24px;align-self:stretch;color:var(--k-muted);border:1px solid transparent;
+  background-image:linear-gradient(var(--k-ground),var(--k-ground)),var(--k-border-grad);
+  background-origin:padding-box,border-box;background-clip:padding-box,border-box}
+.btn-text{background:none;border:none;color:var(--k-muted);font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:8px}
+
+/* ── Welcome screen ─────────────────────────────────────────── */
+.welcome{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;min-height:100%}
+.brand-mark{display:flex;align-items:center;gap:10px;margin-bottom:34px}
+.brand-glyph{width:38px;height:38px;border-radius:11px;overflow:hidden;flex:none;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+.brand-glyph img{width:100%;height:100%;object-fit:cover;display:block}
+.brand-word{font-weight:800;font-size:15px;letter-spacing:.5px}
+.welcome h1{font-family:var(--k-display);font-weight:600;font-size:clamp(32px,8vw,46px);line-height:1.12;text-wrap:balance;margin-bottom:16px}
+.welcome h1 em{font-style:normal;background:linear-gradient(120deg,var(--k-accent-ink),var(--k-cta-a));-webkit-background-clip:text;background-clip:text;color:transparent}
+.welcome p{font-size:15.5px;color:var(--k-muted);line-height:1.65;max-width:40ch;margin-bottom:8px}
+.welcome-trust{display:flex;gap:16px;margin-top:22px;flex-wrap:wrap}
+.trust-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--k-muted);font-weight:600}
+.trust-item svg{flex:none}
+.welcome-spacer{flex:1}
+
+/* ── Reveal screens ─────────────────────────────────────────── */
+.reveal{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;min-height:100%}
+.reveal-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:100px;background:var(--k-gold-bg);color:var(--k-gold);font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-bottom:22px;opacity:0;transform:translateY(8px) scale(.9);transition:all .55s var(--ease)}
+.screen.active .reveal-badge{opacity:1;transform:translateY(0) scale(1);transition-delay:.15s}
+.reveal-visual{width:100%;max-width:280px;margin-bottom:26px;opacity:0;transform:scale(.85);transition:all .6s var(--ease);transition-delay:.05s}
+.screen.active .reveal-visual{opacity:1;transform:scale(1)}
+.reveal-number{font-family:var(--k-display);font-weight:600;font-size:clamp(38px,11vw,56px);line-height:1;margin-bottom:14px;font-variant-numeric:tabular-nums}
+.reveal-number.is-word{font-size:clamp(26px,8vw,38px);text-wrap:balance}
+.reveal-headline{font-family:var(--k-display);font-weight:600;font-size:clamp(20px,5vw,25px);line-height:1.3;text-wrap:balance;margin-bottom:14px;opacity:0;transform:translateY(10px);transition:all .55s var(--ease);transition-delay:.28s}
+.screen.active .reveal-headline{opacity:1;transform:translateY(0)}
+.reveal-body{font-size:14.5px;color:var(--k-muted);line-height:1.6;max-width:38ch;margin-bottom:8px;opacity:0;transform:translateY(10px);transition:all .55s var(--ease);transition-delay:.4s}
+.screen.active .reveal-body{opacity:1;transform:translateY(0)}
+.reveal-source{font-size:10.5px;color:#635d6e;margin-top:14px}
+.reveal-caption{font-size:11.5px;color:var(--k-muted);margin-top:10px;font-weight:600}
+/* Edge-case flourishes — extreme-good and extreme-empty results get a visual
+   treatment normal results don't. A drop-shadow filter alone reads as too
+   subtle against thin SVG shapes (a ladder bar, a gauge needle), so this is a
+   large blurred halo BEHIND the visual (guaranteed visible regardless of the
+   shape it's behind) plus a floating badge and a gentle scale-pulse on the
+   whole visual — three simultaneous, unmistakable signals, not one faint one. */
+.reveal-visual{position:relative}
+.reveal-visual.glow-good,.reveal-visual.glow-empty,.reveal-visual.glow-start{animation:edgeScale 1.8s ease-in-out infinite}
+.reveal-visual.glow-good::before,.reveal-visual.glow-empty::before,.reveal-visual.glow-start::before{
+  content:'';position:absolute;left:50%;top:50%;width:260px;height:260px;max-width:80vw;max-height:80vw;
+  transform:translate(-50%,-50%);border-radius:50%;z-index:-1;pointer-events:none;
+  animation:edgeHalo 1.8s ease-in-out infinite;
+}
+.reveal-visual.glow-good::before{background:radial-gradient(circle, rgba(20,237,96,.55), transparent 68%)}
+.reveal-visual.glow-empty::before{background:radial-gradient(circle, rgba(241,170,62,.45), transparent 68%)}
+.reveal-visual.glow-start::before{background:radial-gradient(circle, rgba(159,95,229,.45), transparent 68%)}
+@keyframes edgeHalo{0%,100%{opacity:.35;transform:translate(-50%,-50%) scale(.82)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}}
+@keyframes edgeScale{0%,100%{transform:scale(1)}50%{transform:scale(1.055)}}
+.edge-flourish{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:6px 14px;border-radius:100px;margin-bottom:14px;animation:edgeBadgeIn .5s var(--ease) both .3s}
+.edge-flourish.good{background:var(--k-safe-bg);color:var(--k-safe)}
+.edge-flourish.empty{background:var(--k-tradeoff-bg);color:var(--k-tradeoff)}
+@keyframes edgeBadgeIn{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+.reveal-continue{width:100%;opacity:0;transform:translateY(10px);transition:all .5s var(--ease);transition-delay:.6s}
+.screen.active .reveal-continue{opacity:1;transform:translateY(0)}
+
+/* population ladder visual (income) */
+.ladder{position:relative;height:120px;margin-top:34px;display:flex;align-items:flex-end;justify-content:center;gap:4px}
+.ladder-bar{position:relative;width:9px;border-radius:4px 4px 0 0;background:var(--k-raised2)}
+.ladder-bar.you{background:linear-gradient(180deg,var(--k-gold),var(--k-cta-a))}
+.ladder-marker{position:absolute;bottom:100%;left:50%;display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);margin-bottom:6px}
+.ladder-marker .pin{font-size:18px}
+
+/* shield fill visual (savings/insurance) */
+.shield-wrap{position:relative;width:120px;height:132px;margin:0 auto}
+.shield-wrap svg{width:100%;height:100%;overflow:visible}
+.shield-fill{transition:stroke-dashoffset 1.1s var(--ease)}
+
+/* gauge visual (credit) */
+.gauge-wrap{position:relative;width:220px;height:120px;margin:0 auto}
+.gauge-needle{transform-origin:110px 108px;transition:transform 1s var(--ease)}
+
+/* coin stack (income alt) */
+.coin-stack{display:flex;align-items:flex-end;justify-content:center;gap:8px;height:96px}
+.coin{width:34px;border-radius:50%;background:linear-gradient(160deg,#ffe08a,var(--k-gold));box-shadow:0 3px 0 #8a6200,0 6px 14px rgba(0,0,0,.3);opacity:0;transform:translateY(14px) scale(.7)}
+.screen.active .coin{animation:coinPop .5s var(--ease) forwards}
+
+@keyframes coinPop{to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* ── Summary / cards (ported KYFR report system) ───────────── */
+.kr-verdict{margin-bottom:20px}
+.kr-eyebrow{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--k-accent);margin-bottom:8px}
+.kr-verdict h1{font-family:var(--k-display);font-weight:600;font-size:22px;line-height:1.28;text-wrap:balance}
+.kr-positive{background:linear-gradient(160deg,var(--k-accent-soft),#16032B);border:1px solid var(--k-accent-track);border-radius:16px;padding:17px 19px;margin-bottom:16px}
+.kr-badge{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;color:var(--k-safe);margin-bottom:9px}
+.kr-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--k-safe);box-shadow:0 0 8px var(--k-safe)}
+.kr-pos-headline{font-size:16px;font-weight:700;line-height:1.35;margin-bottom:7px}
+.kr-pos-payoff{font-size:13px;color:var(--k-ink-soft);line-height:1.5}
+.kr-pos-payoff b{color:var(--k-safe)}
+.kr-today{background:linear-gradient(135deg,var(--k-accent),#3D1E63);border:none;border-radius:20px;padding:20px 20px 18px;margin-bottom:20px;color:#fff;box-shadow:0 10px 30px -12px rgba(159,95,229,.4)}
+.kr-today-eyebrow{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;opacity:.75;margin-bottom:12px}
+.kr-today-icon{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+.kr-today-trigger{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;opacity:.68;margin-bottom:5px}
+.kr-today-body{font-size:19px;font-weight:700;line-height:1.32;margin-bottom:14px}
+.kr-today-chips{display:flex;gap:8px;flex-wrap:wrap}
+.kr-today-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;background:rgba(255,255,255,.14);border-radius:100px;padding:5px 12px}
+.kr-alsolbl{font-size:15px;font-weight:700;color:var(--k-ink);margin:0 0 10px}
+.kr-checklist{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.kr-check-item{display:flex;align-items:center;gap:10px;background:var(--k-surface);border:1px solid var(--k-line);border-radius:12px;padding:11px 14px}
+.kr-check-n{width:20px;height:20px;border-radius:50%;background:var(--k-raised);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--k-muted);flex:none}
+.kr-check-icon{font-size:15px;flex:none}
+.kr-check-title{font-size:13px;font-weight:700;color:var(--k-ink-soft);flex:1}
+.kr-moves{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.kr-move{background:var(--k-surface);border:1px solid var(--k-line);border-radius:16px;padding:15px 17px 16px;position:relative}
+.kr-move::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:2px;background:var(--k-line)}
+.kr-move.sev-critical::before{background:var(--k-harm)}
+.kr-move.sev-caution::before{background:var(--k-tradeoff)}
+.kr-move.sev-improve::before{background:var(--k-accent)}
+.kr-move-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-left:8px}
+.kr-move-icon{width:32px;height:32px;border-radius:10px;background:var(--k-raised);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+.kr-move-title{font-family:var(--k-font);font-size:15px;font-weight:700;flex:1;line-height:1.3}
+.kr-move-n{font-size:10.5px;font-weight:700;color:var(--k-muted);background:var(--k-raised);border-radius:100px;padding:1px 8px;flex:none}
+.kr-move-body{padding-left:8px}
+.kr-bar-wrap{margin-bottom:10px}
+.kr-bar-labels{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:2px 10px;font-size:11.5px;color:var(--k-muted);margin-bottom:6px}
+.kr-bar-labels b{color:var(--k-ink);font-size:13px}
+.kr-bar-track{height:9px;background:var(--k-raised);border-radius:100px;position:relative;overflow:visible}
+.kr-bar-fill{height:100%;border-radius:100px;transition:width .4s}
+.kr-bar-target{position:absolute;top:-3px;bottom:-3px;width:2px;background:rgba(255,255,255,.55);border-radius:2px}
+.kr-steps{display:flex;align-items:flex-end;gap:8px;height:52px;margin-bottom:6px;padding-top:16px}
+.kr-step-bar{flex:1;background:var(--k-accent-track);border-radius:5px 5px 2px 2px;position:relative;min-height:16px}
+.kr-step-bar.last{background:var(--k-accent)}
+.kr-step-lbl{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--k-ink-soft);white-space:nowrap;margin-bottom:4px}
+.kr-steps-cap{font-size:11px;color:var(--k-muted);margin-bottom:10px}
+.kr-daily{display:flex;align-items:center;gap:9px;background:var(--k-accent-soft);border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12px;color:var(--k-ink-soft);line-height:1.4}
+.kr-daily-icon{font-size:14px;flex:none}
+.kr-daily b{color:var(--k-accent-ink)}
+.kr-move-hero{display:flex;align-items:baseline;gap:8px;font-size:16px;font-weight:700;color:var(--k-ink);line-height:1.4;margin-bottom:14px}
+.kr-move-hero .arrow{color:var(--k-accent);flex:none}
+.kr-move-why-mini{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--k-ink-soft);line-height:1.5;margin:10px 0}
+.kr-move-why-mini .ic{flex:none}
+.kr-cost-lbl{font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--k-harm);margin-bottom:7px}
+.kr-cost{display:flex;align-items:flex-start;gap:10px;background:var(--k-harm-bg);border-radius:10px;padding:10px 12px}
+.kr-cost-icon{font-size:14px;flex:none;line-height:1.35}
+.kr-cost-num{font-weight:800;font-size:14.5px;color:var(--k-harm);flex:none;white-space:nowrap;line-height:1.35}
+.kr-cost-cap{font-size:11.5px;color:var(--k-ink-soft);line-height:1.35;flex:1;min-width:0}
+.kr-why-link{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--k-accent);background:none;border:none;padding:12px 0 0;cursor:pointer;width:100%}
+.kr-foot{font-size:11px;color:var(--k-muted);line-height:1.6;text-align:center;padding:14px 0 4px}
+.kr-foot b{color:var(--k-ink-soft)}
+.summary-detail-cta{background:linear-gradient(135deg,rgba(159,95,229,.14),rgba(240,59,189,.07));border:1px solid rgba(159,95,229,.4);border-radius:16px;padding:16px 18px;display:flex;align-items:center;gap:14px;margin:14px 0;cursor:pointer;transition:border-color .2s,transform .15s}
+.summary-detail-cta:hover{border-color:var(--k-accent)}
+.summary-detail-cta:active{transform:scale(.98)}
+.summary-detail-cta .ic{width:38px;height:38px;border-radius:11px;background:var(--k-accent-soft);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
+.summary-detail-cta .tx{flex:1;min-width:0}
+.summary-detail-cta .tx b{display:block;font-size:13.5px;font-weight:700;margin-bottom:2px}
+.summary-detail-cta .tx span{font-size:12px;color:var(--k-muted)}
+.summary-detail-cta .chev{flex:none;color:var(--k-accent);font-size:17px;font-weight:700}
+.summary-footer-link{background:none;border:none;color:var(--k-ink-soft);font-size:13px;font-weight:700;cursor:pointer;padding:6px;align-self:center;opacity:.85;transition:opacity .2s}
+.summary-footer-link:hover{opacity:1}
+
+/* ── Detail (drill-down) screen ─────────────────────────────── */
+.detail-intro{font-size:13px;color:var(--k-muted);line-height:1.6;margin-bottom:14px}
+.overview-ring-wrap{background:var(--k-surface);border:1px solid var(--k-line);border-radius:20px;padding:22px 18px 18px;margin-bottom:20px;display:flex;flex-direction:column;align-items:center}
+.overview-ring{position:relative;width:150px;height:150px;margin-bottom:16px}
+.overview-ring svg{width:100%;height:100%}
+.overview-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.overview-ring-center .n{font-family:var(--k-display);font-size:30px;font-weight:600;line-height:1}
+.overview-ring-center .l{font-size:10px;font-weight:800;letter-spacing:.4px;color:var(--k-muted);margin-top:3px}
+.ring-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;width:100%}
+.ring-legend-item{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--k-ink-soft);font-weight:600}
+.ring-legend-item .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.ring-legend-item .ic{flex:none}
+.acc-action-hero{display:flex;align-items:baseline;gap:8px;font-size:15px;font-weight:700;color:var(--k-ink);line-height:1.4;margin-bottom:14px}
+.acc-action-hero .arrow{color:var(--k-accent);flex:none}
+.stat-chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.stat-chip{display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--k-raised);border-radius:12px;padding:10px 12px;flex:1;min-width:70px;text-align:center}
+.stat-chip .ic{font-size:15px}
+.stat-chip .v{font-size:14px;font-weight:800;color:var(--k-ink);font-family:var(--k-display);white-space:nowrap}
+.stat-chip .l{font-size:9px;color:var(--k-muted);font-weight:700;text-transform:uppercase;letter-spacing:.2px}
+.acc-caption{font-size:12px;color:var(--k-muted);line-height:1.5;margin-bottom:12px;font-style:italic}
+.acc{border:1px solid var(--k-line);border-radius:16px;margin-bottom:10px;overflow:hidden;background:var(--k-surface)}
+.acc-head{display:flex;align-items:center;gap:12px;padding:15px 16px;cursor:pointer;user-select:none}
+.acc-pillar-icon{width:32px;height:32px;border-radius:10px;background:var(--k-raised);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.acc-head .ttl{flex:1;font-size:14px;font-weight:700;display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.priority-tag{font-size:9.5px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:var(--k-accent-ink);background:var(--k-accent-soft);border-radius:100px;padding:2px 8px}
+.acc-head .sev-pill{font-size:10px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:3px 9px;border-radius:100px;flex:none}
+.sev-pill.critical{background:var(--k-harm-bg);color:var(--k-harm)}
+.sev-pill.caution{background:var(--k-tradeoff-bg);color:var(--k-tradeoff)}
+.sev-pill.improve{background:var(--k-accent-soft);color:var(--k-accent-ink)}
+.sev-pill.healthy{background:var(--k-safe-bg);color:var(--k-safe)}
+.acc-chev{transition:transform .3s var(--ease);color:var(--k-muted);flex:none}
+.acc.open .acc-chev{transform:rotate(180deg)}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s var(--ease)}
+.acc-body-in{padding:4px 16px 18px}
+.acc-row{margin-bottom:12px}
+.acc-row .k{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:var(--k-muted);margin-bottom:5px}
+.acc-row .v{font-size:13px;color:var(--k-ink-soft);line-height:1.55}
+.rank-reason{background:var(--k-raised);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--k-ink-soft);line-height:1.5;display:flex;gap:8px}
+.rank-reason .n{flex:none}
+
+/* ── App CTA screen ─────────────────────────────────────────── */
+.cta-screen{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;background:radial-gradient(circle at 50% 20%,var(--k-accent-soft),var(--k-ground) 65%);border-radius:20px}
+.cta-phone{width:120px;height:120px;border-radius:30px;overflow:hidden;margin-bottom:26px;box-shadow:0 20px 50px -14px rgba(159,95,229,.6);animation:float 4s ease-in-out infinite}
+.cta-phone img{width:100%;height:100%;object-fit:cover;display:block}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
+.cta-screen h1{font-family:var(--k-display);font-weight:600;font-size:clamp(26px,6vw,34px);line-height:1.2;text-wrap:balance;margin-bottom:14px}
+.cta-screen h1 em{font-style:normal;background:linear-gradient(120deg,var(--k-accent-ink),var(--k-cta-a));-webkit-background-clip:text;background-clip:text;color:transparent}
+.cta-screen p{font-size:14.5px;color:var(--k-muted);line-height:1.6;max-width:36ch;margin-bottom:26px}
+.cta-features{display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px;margin-bottom:28px}
+.cta-feature{display:flex;align-items:center;gap:12px;background:var(--k-surface);border:1px solid var(--k-line);border-radius:14px;padding:12px 14px;text-align:left}
+.cta-feature .ic{font-size:18px;flex:none}
+.cta-feature span{font-size:12.5px;color:var(--k-ink-soft);font-weight:600}
+.notify-form{display:flex;gap:8px;width:100%;max-width:360px}
+.notify-input{flex:1;background:var(--k-surface);border:1.5px solid var(--k-line);border-radius:100px;padding:14px 18px;color:var(--k-ink);font-size:14px;outline:none}
+.notify-input:focus{border-color:var(--k-accent)}
+.cta-restart{margin-top:22px}
+
+/* confetti */
+#confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:50}
+
+/* scrollbar-less number input arrows off */
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+@media (max-width:380px){
+  .screen{padding:22px 18px 20px}
+  .q-input{font-size:21px}
+}
+</style>
+</head>
+<body>
+
+<div class="backdrop"><div class="blob blob1"></div><div class="blob blob2"></div></div>
+<canvas id="confetti-canvas"></canvas>
+
+<div id="app">
+  <div class="layout">
+    <div class="side-panel" id="side-panel">
+      <img class="side-watermark" id="side-watermark" alt="">
+      <div class="side-brand"><div class="side-logo" id="side-logo-wrap"></div><span>KYFR</span></div>
+      <div class="side-content">
+        <div class="side-label" id="side-label">Welcome</div>
+        <div class="side-headline" id="side-headline">Two minutes.<br>Four honest answers.</div>
+      </div>
+      <div></div>
+    </div>
+    <div class="stage">
+      <div class="progress-rail" id="progress-rail">
+        <div class="progress-seg"><i id="pf-income"></i></div>
+        <div class="progress-seg"><i id="pf-savings"></i></div>
+        <div class="progress-seg"><i id="pf-credit"></i></div>
+        <div class="progress-seg"><i id="pf-insurance"></i></div>
+      </div>
+      <div class="screens" id="screens"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LOGO_SRC = 'data:image/png;base64,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';
+// ══════════════════════════════════════════════════════════════
+// 1. ENGINE — ported verbatim from the KYFR CrISP simulator
+// ══════════════════════════════════════════════════════════════
+const clamp = (v,lo,hi) => Math.max(lo, Math.min(hi,v));
+
+function foirScoreBase(f){
+  if(f<=.30) return 1.0;
+  if(f<=.50) return 1.0-((f-.30)/.20)*.40;
+  if(f<=.70) return 0.60-((f-.50)/.20)*.50;
+  return 0.08;
+}
+function foirScorePreRet(f){
+  if(f<=.10) return 1.0;
+  if(f<=.20) return 1.0-((f-.10)/.10)*.28;
+  if(f<=.30) return 0.72-((f-.20)/.10)*.27;
+  if(f<=.40) return 0.45-((f-.30)/.10)*.27;
+  if(f<=.70) return 0.18-((f-.40)/.30)*.13;
+  return 0.03;
+}
+function foirScore(f, age){
+  if(age < 50) return foirScoreBase(f);
+  if(age >= 55) return foirScorePreRet(f);
+  const t = (age-50)/5;
+  return foirScoreBase(f)*(1-t) + foirScorePreRet(f)*t;
+}
+function utilScore(u){
+  if(u <= 0.10) return 100;
+  if(u <= 0.30) return 100 - (u-0.10)/0.20*15;
+  if(u <= 0.60) return 85  - (u-0.30)/0.30*40;
+  if(u <= 0.90) return 45  - (u-0.60)/0.30*45;
+  return 0;
+}
+function coverageToScore(r){
+  r = Math.max(0, r);
+  if(r >= 1.00) return clamp(90 + 10*Math.min(1,(r-1)/0.5), 90, 100);
+  if(r >= 0.75) return 75 + (r-0.75)/0.25*14;
+  if(r >= 0.50) return 55 + (r-0.50)/0.25*19;
+  return clamp(r/0.50*54, 0, 54);
+}
+function healthTarget(monthly_inc){
+  const a = monthly_inc*12/100000;
+  if(a <= 10) return 15;
+  if(a <= 25) return 15 + (a-10)/15*60;
+  return 75 + Math.min(1,(a-25)/175)*525;
+}
+const PROT_W = [0.7, 1.0, 1.3, 1.5, 1.5];
+function protWeight(deps){ return PROT_W[Math.min(deps,4)]; }
+function protFloor(deps){ return deps===0 ? 0.10 : 0.05; }
+const incomeType = 'salaried';
+function bufTarget(){ return 6; }
+function enterpriseScore(){ return 0.92; }
+
+function calcWeights({deps, age}){
+  const pw = protWeight(deps);
+  let s=1.0, c=1.5, i=1.2, p=pw, e=0.8;
+  if(age >= 50){
+    const t = clamp((age-50)/5, 0, 1);
+    s = s + t*0.1; c = c + t*0.3; i = i + t*(0.9-i); p = p + t*(1.0-p);
+  }
+  return {savings:s, credit:c, investment:i, protection:p, enterprise:e};
+}
+function calcPillars(inp){
+  const {liq, foi, crd, util, cvr, hlt, inv, age, deps, corpus, inc} = inp;
+  const bt = bufTarget();
+  const savings = clamp(liq/bt, 0, 1);
+  let foirComp;
+  if(age<28 && foi<20){
+    const savDisc = clamp((inv/100)/0.05, 0, 1);
+    const blend   = clamp((29-age)/3, 0, 1);
+    foirComp = blend*savDisc + (1-blend)*foirScore(foi/100, age);
+  } else { foirComp = foirScore(foi/100, age); }
+  let crdEff = crd;
+  if(age<29 && crd<680){ const t = clamp((29-age)/4, 0, 1); crdEff = crd + t*Math.max(0, 640-crd); }
+  let bureau_score = clamp((crdEff-300)/600*100, 0, 100);
+  if(crdEff >= 750) bureau_score = Math.min(100, bureau_score + (crdEff-750)/150*10);
+  const bureau = bureau_score/100;
+  const u_score = utilScore(util/100)/100;
+  const credit = foirComp*0.50 + bureau*0.37 + u_score*0.13;
+  const rateScore   = Math.max(0.05, clamp((inv/100)/0.20, 0, 1));
+  const corpusScore = clamp(corpus/25, 0, 1);
+  let investment;
+  if(age < 48)      investment = rateScore;
+  else if(age >= 52) investment = Math.max(0.05, corpusScore);
+  else { const t = (age-48)/4; investment = Math.max(0.05, rateScore*(1-t) + corpusScore*t); }
+  const life_r     = clamp(cvr/10, 0, 1.5);
+  const prem_credit = clamp(Math.max(0, age-40)*0.006, 0, 0.20);
+  const life_score  = coverageToScore(Math.min(life_r + prem_credit, 1.5));
+  const hc_target   = healthTarget(inc);
+  const health_r    = clamp(hlt/hc_target, 0, 1.5);
+  const health_score = coverageToScore(health_r);
+  const prot_raw  = 0.5*Math.min(life_score, health_score) + 0.5*(life_score+health_score)/2;
+  const protection = clamp(Math.max(protFloor(deps), prot_raw/100), 0, 1);
+  const enterprise = enterpriseScore();
+  return {savings, credit, investment, protection, enterprise, hc_target, life_score, health_score,
+    credit_foir:foirComp, credit_bureau:bureau, credit_util:u_score};
+}
+function calcFRI(pillars, weights){
+  const W_SUM = Object.values(weights).reduce((a,b)=>a+b, 0);
+  let denom = 0;
+  for(const [k,w] of Object.entries(weights)) if(k in pillars) denom += w/Math.max(0.001, pillars[k]);
+  const whm = W_SUM/denom;
+  let mult = 1.0;
+  if(pillars.savings < 0.167) mult *= 0.28; else if(pillars.savings < 0.333) mult *= 0.62;
+  if(pillars.credit < 0.30) mult *= 0.78;
+  return clamp(Math.round(whm*mult*100), 0, 100);
+}
+function whatIfFri(pillars, weights, key){
+  const fixed = Object.assign({}, pillars, {[key]: Math.max(pillars[key], 0.60)});
+  return calcFRI(fixed, weights);
+}
+const CASCADE = ['savings','credit','protection','investment'];
+const SEVERITY = s => s < 0.35 ? ['CRITICAL'] : s < 0.55 ? ['CAUTION'] : s < 0.80 ? ['IMPROVE'] : ['OK'];
+
+// ══════════════════════════════════════════════════════════════
+// 2. REPORT HELPERS — ported from KYFR Report mode
+// ══════════════════════════════════════════════════════════════
+function krRs(n){
+  n = Math.round(n);
+  if(n >= 1e7) return '₹' + (n/1e7).toFixed(2).replace(/\.?0+$/,'') + ' Cr';
+  if(n >= 1e5) return '₹' + (n/1e5).toFixed(1).replace(/\.0$/,'') + 'L';
+  if(n >= 1000) return '₹' + Math.round(n/1000) + 'K';
+  return '₹' + Math.max(0, n);
+}
+function krRound(n, step){ return Math.round(n/step)*step; }
+function krStepPlan(seedRaw, target, stepPct){
+  stepPct = stepPct || 0.20;
+  const seed = krRound(Math.max(500, Math.min(seedRaw, target)), 500);
+  if(target <= seed*1.15) return {seed, steps:0, years:0, stepPct:Math.round(stepPct*100)};
+  const steps = Math.max(1, Math.ceil(Math.log(target/seed) / Math.log(1+stepPct)));
+  return {seed, steps, years: +(steps*0.5).toFixed(1), stepPct:Math.round(stepPct*100)};
+}
+// Month-by-month FV of the ACTUAL step-up schedule (start small, +stepPct
+// every 6 months, cap at target) — not a shortcut that assumes the full
+// target contribution from month 1. Any "if you wait" number quoted against
+// a ramp-up recommendation has to be earned by simulating the ramp itself,
+// or it's advertising a bigger number than the plan it's attached to delivers.
+function krRampFV(seedMonthly, targetMonthly, stepPct, months, annualRate){
+  const r = annualRate/12;
+  let balance = 0, current = seedMonthly;
+  for(let m=1; m<=months; m++){
+    balance = (balance+current)*(1+r);
+    if(m%6===0 && current<targetMonthly) current = Math.min(targetMonthly, current*(1+stepPct));
+  }
+  return balance;
+}
+function krCover(cr){ return cr >= 1 ? '₹'+(+cr.toFixed(2)).toString().replace(/\.?0+$/,'')+'Cr' : '₹'+Math.round(cr*100)+'L'; }
+const fmtHlt = v => v>=100 ? `₹${(v/100).toFixed(1)}Cr` : `₹${Math.round(v)}L`;
+const KR_SEVCLASS = {CRITICAL:'critical', CAUTION:'caution', IMPROVE:'improve', OK:'improve'};
+function krBar(current, target, curLabel, targetLabel, color){
+  const scale = Math.max(current, target, 0.0001) * 1.15;
+  const fillPct = Math.max(3, Math.min(100, current/scale*100));
+  const targetPct = Math.min(97, target/scale*100);
+  return `<div class="kr-bar-wrap"><div class="kr-bar-labels"><span><b>${curLabel}</b></span><span>target ${targetLabel}</span></div><div class="kr-bar-track"><div class="kr-bar-fill" style="width:${fillPct}%;background:${color}"></div><div class="kr-bar-target" style="left:${targetPct}%"></div></div></div>`;
+}
+function krSteps(plan, target, unit){
+  if(!plan || !plan.steps) return '';
+  unit = unit || '/mo';
+  const mid = Math.sqrt(plan.seed * target);
+  const vals = [plan.seed, mid, target];
+  const bars = vals.map((v,i)=>`<div class="kr-step-bar${i===2?' last':''}" style="height:${Math.max(20, Math.round(v/target*100))}%"><span class="kr-step-lbl">${krRs(v)}${unit}</span></div>`).join('');
+  return `<div class="kr-steps">${bars}</div><div class="kr-steps-cap">Small → medium → full, over about ${plan.years} years, stepping up ${plan.stepPct}% every 6 months.</div>`;
+}
+function termPremiumMonthly(age, coverCr){
+  const perCr = age<=25?550: age<=30?700: age<=35?950: age<=40?1400: age<=45?2100: age<=50?3200: 4800;
+  return Math.max(300, Math.round(perCr * coverCr / 50) * 50);
+}
+function healthPremiumAnnual(age, coverLakh, deps){
+  const basePer5 = age<=30?6500: age<=40?9000: age<=50?14000: 21000;
+  const fam = deps > 0 ? 1.5 : 1;
+  return krRound(basePer5 * Math.sqrt(Math.max(1, coverLakh/5)) * fam, 500);
+}
+function krSimExtra(principal, annualRate, emi, cap){
+  cap = cap || 600; const r = annualRate/12;
+  let bal = principal, interest = 0, m = 0;
+  while(bal > 0 && m < cap){ m++; const i = bal*r; if(emi-i <= 0) return {months:null, interest};
+    interest += i; bal = (emi-i >= bal) ? 0 : bal-(emi-i); if(bal>0 && m%12===0) bal -= Math.min(emi, bal); }
+  return {months: bal<=0?m:null, interest};
+}
+
+function krPositive(inp, pillars){
+  const {liq, foi, crd, util, cvr, hlt, inv, age, corpus, inc} = inp;
+  if(age >= 52 && corpus >= 25) return {head:"You've crossed the finish line.", payoff:`Your corpus is past <b>25×</b> your annual spending — work is now a choice, not a necessity. Very few people ever get here.`};
+  if(pillars.life_score >= 85 && pillars.health_score >= 85 && (cvr>0 || hlt>0)) return {head:"Your family is fully protected.", payoff:`Both your life and health cover meet the mark for your income and dependents — the hardest box is already ticked.`};
+  if(liq >= 6) return {head:`You've got ${Math.floor(liq)} months of breathing room.`, payoff:`You could lose your income tomorrow and stay standing for <b>${Math.floor(liq)} months</b> — that's freedom, not just savings.`};
+  if(age < 48 && inv >= 18){
+    const monthly = inv/100*inc, yrs = Math.max(1, 60-age);
+    const fv = monthly*12*((Math.pow(1.11, yrs)-1)/0.11);
+    return {head:`You're investing ${inv}% of your income.`, payoff:`At or near the 20% mark most people never hit. Keep this pace and you're looking at roughly <b>${krRs(fv)}</b> by 60.`};
+  }
+  if(crd >= 760 && foi < 30 && util < 30) return {head:"You'll always get the cheapest money in the room.", payoff:`Top-tier score, light EMI load, low card usage — the full trifecta. Every loan you take is at the best rate on offer.`};
+  if(foi < 22 && (foi > 0)) return {head:"Your debt is barely a rounding error.", payoff:`EMIs take under 22% of your take-home — well inside the safe zone, with room to borrow for what actually matters.`};
+  const KEYS = ['savings','credit','investment','protection'];
+  const best = KEYS.map(k=>[k,pillars[k]]).sort((a,b)=>b[1]-a[1])[0];
+  if(best && best[1] >= 0.62){
+    const names = {savings:'emergency buffer', credit:'debt health', investment:'investing habit', protection:'family cover'};
+    return {head:`Your ${names[best[0]]} is your foundation.`, payoff:`It's the steadiest part of your picture right now — we'll build everything else on top of it.`};
+  }
+  return {head:"You're already ahead of most people.", payoff:`Most people never run these numbers. You just did — now let's point them in the right direction.`};
+}
+
+function krCandidates(inp, pillars, weights, fri){
+  const {liq, foi, crd, util, cvr, hlt, inv, age, corpus, inc, spend, deps} = inp;
+  const out = [];
+  const sev = k => { const [lbl] = SEVERITY(pillars[k]); return {lbl, cls:KR_SEVCLASS[lbl], crit: lbl==='CRITICAL', score: pillars[k]}; };
+  const delta = k => Math.max(0, whatIfFri(pillars, weights, k) - fri);
+  const cascadeIdx = {savings:0, credit:1, protection:2, investment:3};
+
+  if(liq < 5.5){
+    const s = sev('savings');
+    const gapRs = Math.max(0, (6-liq)*inc);
+    const monthly = krRound(Math.min(Math.max(gapRs/12, inc*0.05), inc*0.15), 1000);
+    const emergencyCost = inc*3*0.18*1.5;
+    const plan = krStepPlan(inc*0.03, monthly, 0.20);
+    const seed = plan.seed || monthly;
+    out.push({ key:'savings', ...s, delta:delta('savings'), effort:'MED', cascade:cascadeIdx.savings,
+      icon:'🛟', title:'Build your safety cushion',
+      visualHtml: plan.steps > 0 ? krSteps(plan, monthly) : krBar(liq, 6, `${Math.floor(liq)} months of spending saved`, '6 months', 'var(--k-accent)'),
+      microWhy:`One job loss or bill, and you'd be borrowing at 24–36% just to get by.`,
+      costNum:krRs(emergencyCost), costCap:`in emergency-loan interest, the first time you're caught short`,
+      trigger:'THIS WEEK', mins:'1 min', action:`Set up a ${krRs(seed)}/month auto-transfer to a liquid fund` });
+  }
+  (function(){
+    const s = sev('credit'), d = delta('credit');
+    const emi = inc*foi/100;
+    // The rupee cost of 3 months' EMI is a number the user already gave us —
+    // the non-obvious part is what it does to the safety cushion they just saw.
+    const emi3 = emi*3;
+    const curRunway = Math.floor(liq);
+    const runwayAfterHit = spend>0 ? Math.floor(Math.max(0, ST.savings-emi3)/spend) : 0;
+    const runwayCost = (ST.savings > 0)
+      ? { num:`${curRunway}→${runwayAfterHit} mo`, cap:`is what happens to your safety-net runway if 3 months of EMIs came straight out of it` }
+      : { num:krRs(emi3), cap:`you don't have savings to absorb this — it would have to come from new borrowing` };
+    if(foi > 50){
+      out.push({ key:'credit', ...s, delta:d, effort:'HIGH', cascade:cascadeIdx.credit, icon:'⚠️', title:'Ease your debt load',
+        visualHtml: krBar(foi, 30, `${foi}% of income to EMIs`, '30% (safe zone)', 'var(--k-harm)'),
+        microWhy:`Above the safe line — one missed month cascades fast.`,
+        costNum:runwayCost.num, costCap:runwayCost.cap,
+        trigger:'TODAY', mins:'5 min', action:`List your loans by rate — send every spare rupee to the highest one first` });
+    } else if(util > 60){
+      out.push({ key:'credit', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.credit, icon:'💳', title:'Free up your credit',
+        visualHtml: krBar(util, 30, `${util}% of card limit used`, 'under 30%', 'var(--k-tradeoff)'),
+        microWhy:`Lenders read high usage as stress, even when you pay in full.`,
+        costNum:'+1–2%', costCap:`higher rate on every future loan — lakhs over a home-loan lifetime`,
+        trigger:'BEFORE YOUR NEXT STATEMENT', mins:'2 min', action:`Pay your card down until usage is under 30%` });
+    } else if(crd < 650){
+      out.push({ key:'credit', ...s, delta:d, effort:'HIGH', cascade:cascadeIdx.credit, icon:'📈', title:'Lift your credit score',
+        visualHtml: krBar(crd, 650, `${crd} credit score`, '650+ credit score', 'var(--k-accent)'),
+        microWhy:`No shortcuts, no products — just on-time payments for 6 months.`,
+        costNum:krRs(inc*12*5*0.015), costCap:`extra on a future home loan from a score lower than it could be`,
+        trigger:'TODAY', mins:'2 min', action:`Turn on auto-pay for every card and loan` });
+    } else if(foi > 35){
+      out.push({ key:'credit', ...s, delta:d, effort:'MED', cascade:cascadeIdx.credit, icon:'⚖️', title:'Bring your EMIs down',
+        visualHtml: krBar(foi, 30, `${foi}% of income to EMIs`, '30% (safe zone)', 'var(--k-tradeoff)'),
+        microWhy:`A bit above the healthy zone — manageable, but little room for a surprise.`,
+        costNum:runwayCost.num, costCap:runwayCost.cap,
+        trigger:'ON YOUR NEXT BONUS', mins:'5 min', action:`Part-prepay your priciest loan — most let you do it for free` });
+    } else if(util > 30){
+      out.push({ key:'credit', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.credit, icon:'💳', title:'Trim your card usage',
+        visualHtml: krBar(util, 30, `${util}% of card limit used`, 'under 30%', 'var(--k-accent)'),
+        microWhy:`The cheapest score improvement there is — no cost, just timing.`,
+        costNum:'A lower score', costCap:`than you could have — for a completely free fix`,
+        trigger:'BEFORE YOUR NEXT STATEMENT', mins:'1 min', action:`Pay part of your card bill a few days early` });
+    } else if(foi >= 10 && pillars.savings >= 0.33){
+      const rate = 0.13, n = 48, principal = emi>0 ? emi*(1-Math.pow(1+rate/12,-n))/(rate/12) : 0;
+      const base = emi*n - principal;
+      const ex = krSimExtra(principal, rate, emi);
+      const saved = ex.months ? Math.max(0, base - ex.interest) : 0;
+      const monthsEarly = ex.months ? Math.max(0, n - ex.months) : 0;
+      if(saved > 1000 && monthsEarly > 0){
+        out.push({ key:'credit', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.credit, icon:'🏁', title:'Get ahead on your loan',
+          visualHtml: `<div style="display:flex;gap:10px;margin-bottom:10px"><div style="flex:1;background:var(--k-raised);border-radius:10px;padding:10px 12px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--k-accent)">${monthsEarly} mo</div><div style="font-size:10.5px;color:var(--k-muted)">earlier payoff</div></div><div style="flex:1;background:var(--k-raised);border-radius:10px;padding:10px 12px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--k-safe)">${krRs(saved)}</div><div style="font-size:10.5px;color:var(--k-muted)">interest saved</div></div></div>`,
+          microWhy:`Money paid early kills more interest than the same money paid later.`,
+          costNum:krRs(saved), costCap:`in interest you'd otherwise hand the lender for nothing`,
+          trigger:'RIGHT NOW', mins:'2 min', action:`Set a yearly reminder to pay one extra EMI (about ${krRs(emi)})` });
+      }
+    }
+  })();
+  {
+    const needHealth = pillars.health_score < 78;
+    const needLife   = deps > 0 && pillars.life_score < 78;
+    const doLife = needLife && (pillars.life_score <= pillars.health_score || !needHealth);
+    if(doLife){
+      const s = sev('protection'), d = delta('protection');
+      const targetCr = +(inc*12*10/1e7).toFixed(2);
+      const prem = termPremiumMonthly(age, targetCr);
+      const gapRs = Math.max(0, (10-cvr))*inc*12;
+      const dailyLife = Math.max(1, Math.round(prem/30));
+      out.push({ key:'protection', ...s, delta:d, effort:'MED', cascade:cascadeIdx.protection, icon:'🛡️', title:"Protect your family's income",
+        visualHtml: krBar(cvr, 10, `${cvr}× your yearly income covered`, '10× your income', 'var(--k-accent)') + `<div class="kr-daily"><span class="kr-daily-icon">🪙</span><span>About <b>₹${dailyLife}/day</b> — less than a cup of chai — covers the ${krRs(prem)}/month premium.</span></div>`,
+        microWhy:`${deps} ${deps===1?'person depends':'people depend'} on your income — a simple term plan closes this cheaply.`,
+        costNum:krRs(gapRs), costCap:`your family would have to replace on their own`,
+        trigger:'IN THE NEXT 10 MINUTES', mins:'10 min', action:`Get one online term-insurance quote for ${krCover(targetCr)} cover` });
+    } else if(needHealth){
+      const s = sev('protection'), d = delta('protection');
+      const target = pillars.hc_target;
+      const prem = healthPremiumAnnual(age, target, deps);
+      const gapRs = Math.max(0, target-hlt)*1e5;
+      const dailyHealth = Math.max(1, Math.round(prem/365));
+      out.push({ key:'protection', ...s, delta:d, effort:'MED', cascade:cascadeIdx.protection, icon:'⚕️', title:'Guard against a big medical bill',
+        visualHtml: krBar(hlt, target, `${fmtHlt(hlt)} covered`, fmtHlt(target), 'var(--k-accent)') + `<div class="kr-daily"><span class="kr-daily-icon">🪙</span><span>Save about <b>₹${dailyHealth}/day</b> from today — by renewal, the full ${krRs(prem)} premium is already set aside, not a surprise bill.</span></div>`,
+        microWhy:`${fmtHlt(target)} is a realistic cost for a serious hospital stay — you're ${fmtHlt(Math.max(0,target-hlt))} short.`,
+        costNum:krRs(gapRs), costCap:`paid straight from savings in one bad hospital stay`,
+        trigger:'TODAY', mins:'5 min', action:`Get a super top-up quote — it stacks on what you already have` });
+    }
+  }
+  if(age < 48 && inv < 19){
+    const s = sev('investment'), d = delta('investment');
+    const addRs = krRound(Math.max(0, (20-inv))/100*inc, 500);
+    const yrsToRetire = Math.max(1, 60-age);
+    const yrs10 = Math.min(10, yrsToRetire);
+    const plan = krStepPlan(inc*0.02, addRs, 0.20);
+    const seed = plan.seed || addRs;
+    // Simulated against the ACTUAL ramp (start at seed, +20% every 6 months,
+    // cap at addRs) — not an idealised "full amount from month 1" shortcut,
+    // so the number quoted is exactly what following the recommended plan
+    // below is projected to build, not a bigger, unearned one.
+    const shortfall10 = krRampFV(seed, addRs, 0.20, Math.round(yrs10*12), 0.11);
+    const shortfallRetire = krRampFV(seed, addRs, 0.20, Math.round(yrsToRetire*12), 0.11);
+    // A 25-year-old can't feel "by 60" — 35 years out is abstract. Ten years
+    // is something they can actually picture, so it leads; retirement is the
+    // second, longer payoff that explains why compounding is worth starting now.
+    const costNum = yrs10>=yrsToRetire ? krRs(shortfallRetire) : krRs(shortfall10);
+    const costCap = yrs10>=yrsToRetire
+      ? `less by retirement if you leave this where it is`
+      : `less in just ${yrs10} years — growing to ${krRs(shortfallRetire)} by retirement if this stays as is`;
+    out.push({ key:'investment', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.investment, icon:'🌱', title:'Invest a little more',
+      visualHtml: plan.steps > 0 ? krSteps(plan, addRs) : krBar(inv, 20, `${inv}% of income invested`, '20% of income', 'var(--k-accent)'),
+      microWhy:`20% of income quietly funds a real retirement — compounding now is the part you can't buy back later.`,
+      costNum, costCap,
+      trigger:'RIGHT NOW', mins:'2 min', action:`Start a ${krRs(seed)}/month SIP in your investing app` });
+  } else if(age >= 52 && corpus < 25 && corpus > 0){
+    const s = sev('investment'), d = delta('investment');
+    const recoverYrs = Math.max(1, Math.round(Math.log(1/(1-0.25)) / Math.log(1.07)));
+    out.push({ key:'investment', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.investment, icon:'🎯', title:'Stay on track for retirement',
+      visualHtml: krBar(corpus, 25, `${corpus}× yearly spending saved`, '25× (retirement-ready)', 'var(--k-accent)'),
+      microWhy:`25 times your yearly spending saved up is the standard "retirement-ready" mark — you're almost there. A big loss now is hard to recover from this close.`,
+      costNum:`~${recoverYrs} years`, costCap:`to recover from a bad drawdown this close to the finish line, instead of steadily compounding your way there`,
+      trigger:'THIS WEEK', mins:'5 min', action:`Review your allocation once — make sure you're not overexposed` });
+  }
+  return out;
+}
+function krPrioritise(cands){
+  if(!cands.length) return [];
+  const byConsequence = arr => arr.slice().sort((a,b)=> (b.crit - a.crit) || (b.delta - a.delta) || (a.score - b.score) || (a.cascade - b.cascade));
+  const ranked = byConsequence(cands);
+  const keystone = ranked[0];
+  const rest = ranked.filter(c => c !== keystone);
+  const effortRank = {LOW:0, MED:1, HIGH:2};
+  const easy = rest.slice().sort((a,b)=> (effortRank[a.effort]-effortRank[b.effort]) || (b.crit-a.crit) || (b.delta-a.delta))[0];
+  const picks = [keystone];
+  if(easy) picks.push(easy);
+  const third = byConsequence(rest.filter(c => c !== easy)).find(c => c.lbl !== 'IMPROVE');
+  if(third && picks.length < 3) picks.push(third);
+  return picks.slice(0,3);
+}
+function krVerdict(moves, hasCritical){
+  if(hasCritical) return "There's real strain here — but it's fixable, and there's an order to it. Start with one thing, today.";
+  if(moves.length === 0) return "You're in rare shape — every pillar is pulling its weight. The job now is simply to protect it.";
+  if(moves.length === 1) return "You're most of the way there. One move takes you from solid to genuinely resilient.";
+  return "You've built a real foundation. A couple of focused moves and you're resilient — here's the order.";
+}
+
+// ══════════════════════════════════════════════════════════════
+// 3. BENCHMARK ENGINE — real India data, cited in-product
+//    Income: World Inequality Lab India 2024 (bottom-50% ≈ ₹5.9K/mo) +
+//      ITR Stats percentile thresholds (top10%≈₹31L/yr, top5%≈₹42L/yr,
+//      top1%≈₹71.5L/yr, FY25-26 filers).
+//    Emergency fund: Paisabazaar 2024 (60% of salaried can't cover 3mo) +
+//      Finology/Business Standard 2024 (75% lack adequate fund, 40% zero).
+//    Insurance: NFHS-6 2023-24 (60.2% of households have health cover,
+//      up from 41% in NFHS-5) + IRDAI FY25 (life penetration 2.7% of GDP).
+// ══════════════════════════════════════════════════════════════
+// Anchored on the one hard, sourced figure available: World Inequality Lab's
+// top-1% entry threshold for India, ₹20.7L/year (₹1,72,500/month) = P99,
+// 2022-23. Bottom-50% average (₹71,000/year ≈ ₹5,900/month) anchors the
+// other end. Everything between is a smooth log-interpolation, not a
+// separately-sourced claim — intermediate points are deliberately not
+// presented with false precision.
+// Triangulated from multiple independent, named sources rather than one
+// figure — each anchor cites what it's actually built on:
+//  ₹3,000/mo  → P27.5  (PLFS 2023-24: bottom 27.5% of the labour force earn below this)
+//  ₹9,000/mo  → P50    (PLFS 2023-24: median individual earning)
+//  ₹15,000/mo → P78    (PLFS 2023-24: top 22% of the labour force earn above this)
+//  ₹27,000/mo → P90    (PLFS-based "₹25-30k = top 10%" AND WID's ~₹3.2L/yr adult
+//                        top-10% threshold independently agree here)
+//  ₹55,000/mo → P95    (commonly-cited all-India top-5% threshold, ~₹6-7L/yr)
+//  ₹1,72,500/mo → P99  (World Inequality Lab: top-1% entry threshold, ₹20.7L/yr, 2022-23)
+//  ₹4,16,667/mo → P99.85 (derived: CBDT/ITR — top 1.4% of the ~6% who file ITR
+//                          earn >₹50L/yr; 1.4% of the top 6% ≈ top 0.08% of all India)
+//  ₹8,33,333/mo → P99.95 (derived the same way from "top 0.47% of filers >₹1Cr/yr")
+// All-India basis throughout (PLFS/WID both count the full population, informal
+// and agricultural sectors included) — deliberately not filtered to salaried
+// urban India, since that's a different, much smaller reference class.
+// Denominator is SALARIED INDIVIDUALS specifically, not all of India — a
+// deliberate choice, since "all of India" includes ~80% of the workforce in
+// informal, agricultural or casual work, which isn't the right comparison
+// class for someone answering a salary question in this app. Anchors:
+//  ₹11,000/mo → ~P20  (CMIE: median INFORMAL-salaried worker — the lower end
+//                       of the "salaried" category, not the floor of all India)
+//  ₹21,000/mo → P50   (PLFS 2023-24: average regular wage/salaried employee,
+//                       used as the median proxy for this group)
+//  ₹80,000/mo → P90   (Economic Survey of India 2020-21: salaried top-10%)
+//  ₹1,20,000/mo → P95 (Economic Survey of India 2020-21: salaried top-5%)
+//  ₹3,60,000/mo → P99 (Economic Survey of India 2020-21: salaried top-1%)
+//  ₹10,00,000/mo → P99.8 (extrapolated tail for senior-leadership pay — not
+//                          separately sourced, flagged as such)
+// The 2020-21 figures are the most recent salaried-specific percentile table
+// available; no newer one exists publicly, so they're used as-is rather than
+// papered over with an unsourced inflation adjustment.
+// Denominator: all individual income earners in India. A "salaried-only"
+// curve was tried and reverted — the only breakdown found for that specific
+// population (Economic Survey 2020-21, salaried percentiles) traced back to
+// a single LinkedIn post with no primary source, so it wasn't trustworthy
+// enough to stand behind. These anchors are all independently checkable:
+//  ₹3,000/mo  → P27.5  (PLFS 2023-24: bottom 27.5% of the labour force earn below this)
+//  ₹9,000/mo  → P50    (PLFS 2023-24: median individual earning)
+//  ₹15,000/mo → P78    (PLFS 2023-24: top 22% of the labour force earn above this)
+//  ₹27,000/mo → P90    (PLFS "₹25-30k = top 10%" AND World Inequality Lab's own
+//                        ~₹3.2L/yr adult top-10% threshold independently agree)
+//  ₹55,000/mo → P95    (commonly-cited all-India top-5% threshold, ~₹6-7L/yr)
+//  ₹1,72,500/mo → P99  (World Inequality Lab: top-1% entry threshold, ₹20.7L/yr,
+//                        2022-23 — matches independent ChatGPT/public-data checks)
+//  ₹4,16,667/mo → P99.85 (derived: CBDT/ITR — top 1.4% of the ~6% who file ITR
+//                          earn >₹50L/yr; 1.4% of the top 6% ≈ top 0.08% of all India)
+//  ₹8,33,333/mo → P99.95 (derived the same way from "top 0.47% of filers >₹1Cr/yr")
+const INCOME_ANCHORS = [
+  [3000,27.5],[9000,50],[15000,78],[27000,90],
+  [55000,95],[172500,99],[416667,99.85],[833333,99.95]
+];
+function interpPercentile(income){
+  if(income<=INCOME_ANCHORS[0][0]) return INCOME_ANCHORS[0][1];
+  for(let i=0;i<INCOME_ANCHORS.length-1;i++){
+    const [x0,y0]=INCOME_ANCHORS[i], [x1,y1]=INCOME_ANCHORS[i+1];
+    if(income<=x1){ const t=(Math.log(income)-Math.log(x0))/(Math.log(x1)-Math.log(x0)); return y0+t*(y1-y0); }
+  }
+  return 99.9;
+}
+function incomeInsight(inc){
+  const pRaw = clamp(interpPercentile(Math.max(1,inc)), 1, 99.9);
+  const topRaw = 100-pRaw;
+  // Round ONCE, to the exact value the badge displays, then derive every
+  // banding decision from that same rounded number — otherwise a raw
+  // percentile just under a threshold (97.97) can round up to a headline
+  // number ("top 2%") that implies a tier the copy below it disagrees with.
+  const top = topRaw>=10 ? Math.round(topRaw) : topRaw>=1 ? Math.round(topRaw*2)/2 : +topRaw.toFixed(1);
+  const p = 100-top;
+  // One metric, shown exactly once: the "top X%" figure is the hero number
+  // above this. Headline and body add new framing, never restate that digit.
+  let headline, body;
+  if(p>=99.5){ headline="You're in the rarest tier of earners."; body=`A position almost no one in India ever reaches.`; }
+  else if(p>=98){ headline="You're deep in India's top earners."; body=`A bracket most people never get close to.`; }
+  else if(p>=95){ headline="You're in top-5% territory."; body=`A position most Indian earners never reach.`; }
+  else if(p>=90){ headline="You're already ahead of 9 out of 10 Indians."; body=`Firmly in the country's upper income tier.`; }
+  else if(p>=75){ headline="You're earning more than most of India."; body=`Most of the country is earning less than you right now.`; }
+  else if(p>=50){ headline="You're already earning more than half of India."; body=`You've cleared a bar most people are still working toward.`; }
+  else { headline="This is exactly where most of India starts."; body=`You're not behind — you're building from a common, real starting point.`; }
+  return {percentile:p, top, topLabel:`top ${top}%`, headline, body};
+}
+// liqFloor is a whole, floored number of months — never a decimal — and the
+// body always cashes it out as one concrete, non-abstract consequence (a
+// career break) instead of restating the number the big stat already shows.
+function bufferInsight(liqFloor){
+  const breakLine = liqFloor >= 1
+    ? `Even taking a ${liqFloor}-month break wouldn't hurt you financially.`
+    : `Right now, even a short break could really hurt — that's exactly what this fixes.`;
+  if(liqFloor<=0) return {headline:"Most people start exactly here.", body: breakLine};
+  if(liqFloor<3) return {headline:"You've already started — the hardest part.", body: breakLine};
+  if(liqFloor<6) return {headline:"You've hit a benchmark most Indians haven't.", body: breakLine};
+  return {headline:"You're in a genuinely small minority.", body: breakLine};
+}
+// The score the user typed in is an input, not an insight — echoing it back
+// isn't new information. What IS new: a single consolidated credit-health
+// read that blends EMI burden, bureau score and card usage the same way the
+// engine does (50/37/13), plus which of the three is actually holding it
+// back — something no credit report hands you directly.
+function creditInsight(inp, pillars){
+  const pct = Math.round(pillars.credit*100);
+  const [sevLbl] = SEVERITY(pillars.credit);
+  const bandMap = {CRITICAL:'Needs Work', CAUTION:'Fair', IMPROVE:'Good', OK:'Excellent'};
+  const band = bandMap[sevLbl];
+  const factors = [
+    {name:'EMI burden', score: pillars.credit_foir},
+    {name:'Credit score', score: pillars.credit_bureau},
+    {name:'Card usage', score: pillars.credit_util},
+  ];
+  const weakest = factors.slice().sort((a,b)=>a.score-b.score)[0];
+  let headline, body;
+  if(band==='Excellent'){ headline="Your credit health is excellent."; body=`EMI burden, score and card usage are all pulling their weight — lenders compete for you.`; }
+  else if(band==='Good'){ headline="Your credit health is good."; body=`Solid overall — ${weakest.name} is the one area with the most room to grow.`; }
+  else if(band==='Fair'){ headline="Your credit health is fair."; body=`${weakest.name} is what's dragging down an otherwise decent picture.`; }
+  else { headline="Your credit health needs work."; body=`${weakest.name} is the single biggest drag right now — fixing that moves the needle most.`; }
+  return {band, pct, headline, body, weakest};
+}
+function insuranceInsight(inp, pillars){
+  const hasLife = inp.cvr>0, hasHealth = inp.hlt>0;
+  const lifeOk = pillars.life_score>=78, healthOk = pillars.health_score>=78;
+  // Life cover only protects people who depend on your income — with none,
+  // it's genuinely not being weighed, not silently ignored. Said outright so
+  // a ₹0 life-cover number is never confusing.
+  const note = inp.deps===0 ? `You have no dependents, so life cover isn't being weighed here — health cover is, for everyone.` : null;
+  if((inp.deps===0 || lifeOk) && healthOk){
+    return {headline:"You've covered ground most households haven't.", body:`Only 6 in 10 Indian households have any health cover at all — you're ahead of the curve.`, note};
+  }
+  if(hasLife || hasHealth){
+    return {headline:"You've already started — most people haven't.", body:`You're part of a rising minority. Next, let's make sure the cover is enough.`, note};
+  }
+  return {headline:"You're not alone — and that's exactly why this matters.", body:`Most Indian families are one bad diagnosis away from real financial damage.`, note};
+}
+
+// ══════════════════════════════════════════════════════════════
+// 4. STATE + DERIVATION (absolute-₹ inputs → the % the engine needs)
+// ══════════════════════════════════════════════════════════════
+const ST = { age:28, deps:0, income:0, spending:0, savings:0, sip:0, retirementCorpus:0,
+  emi:0, knownScore:null, cardBalance:0, cardLimit:0, noCardBalance:false, lifeCover:0, healthCover:0 };
+
+// Runway is deliberately savings ÷ INCOME, not a separate "expenses" figure —
+// that's the number people actually think in ("I have N months of my salary
+// saved up"), it's the more conservative of the two (income ≥ what most
+// people would actually spend), and it removes a whole second field that only
+// ever caused confusion about how it related to EMIs. Every ratio below is
+// also capped — a mismatched pair of absolute inputs can produce a
+// mathematically "correct" but meaningless multiple otherwise.
+// Runway (liq) and the retirement corpus multiple are both hedged on SPENDING,
+// not income — that's the financially correct denominator (what you'd
+// actually have to cover if income stopped), and it's the standard "25×
+// annual spending" definition retirement planners use. Always surfaced to the
+// user as "based on your spending," never left ambiguous.
+function deriveInp(){
+  const inc = ST.income;
+  const spend = ST.spending;
+  const foi = inc>0 ? Math.min(100, Math.round(ST.emi/inc*100)) : 0;
+  const liq = spend>0 ? Math.min(60, +(ST.savings/spend).toFixed(1)) : 0;
+  const inv = inc>0 ? Math.min(60, Math.round(ST.sip/inc*100)) : 0;
+  const util = (ST.noCardBalance || ST.cardLimit<=0) ? 0 : Math.min(100, Math.round(ST.cardBalance/ST.cardLimit*100));
+  const crd = ST.knownScore != null ? ST.knownScore : 700;
+  const cvr = inc>0 ? Math.min(50, +(ST.lifeCover/(inc*12)).toFixed(1)) : 0;
+  const hlt = Math.min(100000, +(ST.healthCover/1e5).toFixed(1));
+  const corpus = (ST.age>=50 && spend>0) ? Math.min(60, +(ST.retirementCorpus/(spend*12)).toFixed(1)) : 0;
+  return {inc, spend, liq, foi, crd, util, cvr, hlt, inv, age:ST.age, corpus, deps:ST.deps};
+}
+
+// ══════════════════════════════════════════════════════════════
+// 5. UTILS
+// ══════════════════════════════════════════════════════════════
+function fmtIndianInput(n){
+  if(!n) return '';
+  n = Math.round(n).toString();
+  let last3 = n.slice(-3), rest = n.slice(0,-3);
+  rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+  return rest ? rest+','+last3 : last3;
+}
+// Recognises Indian shorthand (1l/1 lakh/1cr/50k) so typing it doesn't silently
+// get stripped to "1"; also hard-caps at 999,99,99,99,999 so no field can ever
+// overflow the layout with a pathological string of digits.
+// Only strips/expands shorthand and guards against a pathologically long
+// string — the REAL, field-specific ceiling is applied by wireCurrency below,
+// since "a plausible number" means something different for a credit-card
+// limit than it does for a lifetime savings balance.
+function parseNum(str){
+  str = String(str).trim().toLowerCase().replace(/,/g,'');
+  if(!str) return 0;
+  const m = str.match(/^([0-9]*\.?[0-9]+)\s*(lakhs?|lacs?|crores?|cr|l|k)?$/);
+  let num = 0;
+  if(m){
+    num = parseFloat(m[1]) || 0;
+    const suf = m[2];
+    if(suf === 'k') num *= 1e3;
+    else if(suf && suf[0] === 'l') num *= 1e5;
+    else if(suf && suf.slice(0,2) === 'cr') num *= 1e7;
+  } else {
+    num = parseFloat(str.replace(/[^0-9.]/g,'')) || 0;
+  }
+  return Math.min(1e13, Math.round(num));
+}
+function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstElementChild; }
+function animateCount(node, target, opts){
+  opts = opts || {};
+  const duration = opts.duration || 1000, prefix = opts.prefix||'', suffix = opts.suffix||'', decimals = opts.decimals||0;
+  const start = performance.now();
+  function tick(now){
+    const t = Math.min(1,(now-start)/duration);
+    const eased = 1-Math.pow(1-t,3);
+    node.textContent = prefix + (target*eased).toFixed(decimals) + suffix;
+    if(t<1) requestAnimationFrame(tick); else node.textContent = prefix+target.toFixed(decimals)+suffix;
+  }
+  requestAnimationFrame(tick);
+}
+function fireConfetti(big){
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = innerWidth; canvas.height = innerHeight;
+  const colors = big ? ['#9F5FE5','#F03BBD','#FFC24B','#14ED60','#FFD700'] : ['#9F5FE5','#F03BBD','#FFC24B','#14ED60'];
+  const n = big ? 160 : 90;
+  const spread = big ? 260 : 160;
+  const parts = Array.from({length:n},()=>({
+    x: innerWidth/2 + (Math.random()-0.5)*spread, y: innerHeight*0.32,
+    vx:(Math.random()-0.5)*(big?13:10), vy:-Math.random()*(big?13:10)-4, size:(big?5:4)+Math.random()*4,
+    color: colors[Math.floor(Math.random()*colors.length)], rot:Math.random()*360, vr:(Math.random()-0.5)*14, life:1
+  }));
+  function frame(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive=false;
+    parts.forEach(p=>{
+      p.vy+=0.35; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life-=0.012;
+      if(p.life>0){ alive=true; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+        ctx.globalAlpha=Math.max(0,p.life); ctx.fillStyle=p.color; ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6); ctx.restore(); }
+    });
+    if(alive) requestAnimationFrame(frame); else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  frame();
+}
+addEventListener('resize', ()=>{ const c=document.getElementById('confetti-canvas'); if(c){c.width=innerWidth;c.height=innerHeight;} });
+
+function wireCurrency(id, key, opts){
+  opts = opts || {};
+  const max = opts.max != null ? opts.max : 1e13;
+  const input = document.getElementById(id);
+  if(!input) return;
+  input.addEventListener('input', ()=>{
+    const raw = Math.min(max, parseNum(input.value));
+    input.value = raw ? fmtIndianInput(raw) : '';
+    ST[key] = raw;
+    if(opts.onInput) opts.onInput(raw);
+    validateCurrent();
+  });
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); const btn=document.getElementById('btn-continue'); if(btn && !btn.disabled) btn.click(); } });
+}
+
+// visual builders for reveal screens
+function renderLadder(percentile){
+  const n = 12;
+  const idx = Math.min(n-1, Math.round(percentile/100*(n-1)));
+  let bars = '';
+  for(let i=0;i<n;i++){
+    const h = 16 + Math.pow(i/(n-1), 1.6)*84;
+    const isYou = i===idx;
+    bars += `<div class="ladder-bar${isYou?' you':''}" style="height:${h}%">${isYou?'<div class="ladder-marker"><span class="pin">📍</span></div>':''}</div>`;
+  }
+  return `<div class="ladder">${bars}</div>`;
+}
+function renderShield(pct, color){
+  const path = "M50 4 L92 20 V54 C92 84 74 100 50 106 C26 100 8 84 8 54 V20 Z";
+  return `<div class="shield-wrap">
+    <svg viewBox="0 0 100 110"><path d="${path}" fill="none" stroke="var(--k-line)" stroke-width="5"/></svg>
+    <svg viewBox="0 0 100 110" style="position:absolute;inset:0;clip-path:inset(100% 0 0 0)" id="shield-fill-svg"><path d="${path}" fill="${color}"/></svg>
+  </div>`;
+}
+function animateShield(pct){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const svg = document.getElementById('shield-fill-svg');
+    if(svg){ svg.style.transition='clip-path 1.1s var(--ease)'; svg.style.clipPath = `inset(${100-pct}% 0 0 0)`; }
+  }));
+}
+// Takes the CONSOLIDATED 0-1 credit-health score (EMI burden + bureau score +
+// card usage, blended the same 50/37/13 way the engine weighs them) — not
+// the raw bureau score alone, so the gauge reflects the same number the
+// reveal is actually reporting.
+function renderGauge(pct01){
+  const pct = clamp(pct01,0,1);
+  const color = pct>=0.80?'var(--k-safe)':pct>=0.55?'var(--k-accent)':pct>=0.35?'var(--k-tradeoff)':'var(--k-harm)';
+  return `<div class="gauge-wrap"><svg viewBox="0 0 220 120" width="100%" height="100%">
+    <path d="M14 110 A96 96 0 0 1 206 110" fill="none" stroke="var(--k-line)" stroke-width="14" stroke-linecap="round"/>
+    <path id="gauge-arc" d="M14 110 A96 96 0 0 1 206 110" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round" stroke-dasharray="0 301"/>
+    <line class="gauge-needle" id="gauge-needle" x1="110" y1="108" x2="110" y2="28" stroke="#fff" stroke-width="4" stroke-linecap="round" style="transform:rotate(-90deg)"/>
+    <circle cx="110" cy="108" r="8" fill="#fff"/>
+  </svg></div>`;
+}
+function animateGauge(pct01){
+  const pct = clamp(pct01,0,1);
+  const angle = -90 + pct*180;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const arc = document.getElementById('gauge-arc'), needle = document.getElementById('gauge-needle');
+    if(arc){ arc.style.transition='stroke-dasharray 1.1s var(--ease)'; arc.setAttribute('stroke-dasharray', `${pct*301} 301`); }
+    if(needle){ needle.style.transform = `rotate(${angle}deg)`; }
+  }));
+}
+function edgeFlourish(kind, text){
+  if(!kind) return '';
+  return `<div class="edge-flourish ${kind}">${kind==='good'?'🏆':'⚠️'} ${text}</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 6. SCREENS
+// ══════════════════════════════════════════════════════════════
+let LAST_REPORT = null;
+
+// ── Detail-report helpers: one full audit card per pillar, whether or not
+// it made the priority list — "detailed" means every input is accounted for,
+// not just the ones that became an action. ──
+const PILLAR_INFO = {
+  savings: {icon:'🛟', title:'Safety Cushion', whyMatters:`Your cushion if income stops.`},
+  credit: {icon:'💳', title:'Credit &amp; Loans', whyMatters:`How cheaply you can borrow.`},
+  protection: {icon:'🛡️', title:'Insurance', whyMatters:`Your family's cover if things go wrong.`},
+  investment: {icon:'🌱', title:'Investing', whyMatters:`Whether your money works for your future.`},
+};
+// Pictorial over textual: every pillar's numbers render as a row of small
+// stat chips (icon + value + label), the same visual language as the reveal
+// screens — not a sentence to parse.
+function pillarStatChips(key, inp, pillars){
+  if(key==='savings') return [
+    {ic:'💰', v:krRs(ST.savings), l:'saved'},
+    {ic:'📅', v:`${Math.floor(inp.liq)} mo`, l:'runway'},
+  ];
+  if(key==='credit'){
+    const scoreTxt = ST.knownScore!=null ? inp.crd : '~700';
+    return [
+      {ic:'📋', v:krRs(ST.emi), l:'EMI/mo'},
+      {ic:'📈', v:scoreTxt, l:'score'},
+      {ic:'💳', v:`${inp.util}%`, l:'card use'},
+    ];
+  }
+  if(key==='protection') return [
+    {ic:'🛡️', v:krRs(ST.lifeCover), l:'life cover'},
+    {ic:'⚕️', v:krRs(ST.healthCover), l:'health cover'},
+  ];
+  if(key==='investment'){
+    if(inp.age>=52) return [{ic:'🏦', v:krRs(ST.retirementCorpus), l:'corpus'}, {ic:'📊', v:`${inp.corpus}×`, l:'yearly spend'}];
+    return [{ic:'🌱', v:krRs(ST.sip), l:'invested/mo'}, {ic:'📊', v:`${inp.inv}%`, l:'of income'}];
+  }
+  return [];
+}
+function pillarVisual(key, inp, pillars){
+  const c = 'var(--k-accent)';
+  if(key==='savings') return krBar(Math.floor(inp.liq), 6, `${Math.floor(inp.liq)} months saved`, '6 months', c);
+  if(key==='credit'){ const p=Math.round(pillars.credit*100); return krBar(p, 80, `${p}% credit health`, '80%+', c); }
+  if(key==='protection') return krBar(inp.hlt, pillars.hc_target, `${fmtHlt(inp.hlt)} health cover`, fmtHlt(pillars.hc_target), c);
+  if(key==='investment'){
+    if(inp.age>=52) return krBar(inp.corpus, 25, `${inp.corpus}× yearly spending saved`, '25×', c);
+    return krBar(inp.inv, 20, `${inp.inv}% of income invested`, '20%', c);
+  }
+  return '';
+}
+function pillarRankReason(cand, moves){
+  if(!cand) return `On track — no action needed right now.`;
+  const picked = moves.includes(cand);
+  const rank = moves.indexOf(cand);
+  if(picked && rank===0) return `Your #1 priority — biggest impact of anything right now.`;
+  if(picked) return `A genuinely low-effort win, alongside your top move.`;
+  return `A real gap, but ${moves[0]?moves[0].title.toLowerCase():'your top pick'} matters more today.`;
+}
+function buildPillarDetail(key, inp, pillars, cands, moves){
+  const info = PILLAR_INFO[key];
+  const cand = cands.find(c=>c.key===key);
+  const picked = !!cand && moves.includes(cand);
+  const rank = cand ? moves.indexOf(cand) : -1;
+  // Protection covers two different covers (life, health) but only ever
+  // surfaces one move — say outright when life cover is sitting out of the
+  // evaluation entirely, so a ₹0 chip next to it never reads as an oversight.
+  const note = (key==='protection' && inp.deps===0) ? `No dependents on file, so life cover isn't factored in here — only health.` : null;
+  return {
+    key, icon:info.icon, title:info.title, whyMatters:info.whyMatters, note,
+    sevLabel: cand ? cand.lbl : 'ON TRACK',
+    sevCls: cand ? cand.cls : 'healthy',
+    chips: pillarStatChips(key, inp, pillars),
+    visual: pillarVisual(key, inp, pillars),
+    reason: pillarRankReason(cand, moves),
+    actionLine: cand ? `${cand.action}.` : null,
+    picked, rank,
+  };
+}
+// The overview ring — one segment per pillar, coloured by status. Replaces a
+// wordy methodology paragraph with a single picture of the whole picture.
+function buildOverviewRing(cards){
+  const colorMap = {critical:'var(--k-harm)', caution:'var(--k-tradeoff)', improve:'var(--k-accent)', healthy:'var(--k-safe)'};
+  const r = 80, cx = 100, cy = 100, sw = 16;
+  const circ = 2*Math.PI*r;
+  const n = cards.length;
+  const gap = 10;
+  const segLen = circ/n - gap;
+  const segs = cards.map((c,i)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${colorMap[c.sevCls]}" stroke-width="${sw}" stroke-dasharray="${segLen} ${circ-segLen}" stroke-dashoffset="${-(i*(circ/n))}" stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>`).join('');
+  const onTrack = cards.filter(c=>c.sevCls==='healthy').length;
+  const legend = cards.map(c=>`<div class="ring-legend-item"><span class="dot" style="background:${colorMap[c.sevCls]}"></span><span class="ic">${c.icon}</span><span>${c.title}</span></div>`).join('');
+  return `<div class="overview-ring-wrap">
+    <div class="overview-ring">
+      <svg viewBox="0 0 200 200"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--k-raised)" stroke-width="${sw}"/>${segs}</svg>
+      <div class="overview-ring-center"><div class="n">${onTrack}/${n}</div><div class="l">ON TRACK</div></div>
+    </div>
+    <div class="ring-legend">${legend}</div>
+  </div>`;
+}
+
+const SCREENS = {
+  welcome: {
+    render(){ return `<div class="screen" data-id="welcome"><div class="screen-scroll"><div class="welcome">
+      <div class="brand-mark"><div class="brand-glyph"><img src="${LOGO_SRC}" alt="KYFR"></div><div class="brand-word">KYFR</div></div>
+      <h1>Know your money.<br><em>Really</em> know it.</h1>
+      <div class="welcome-spacer"></div>
+    </div></div>
+    <div class="btn-row"><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Let's begin →</button></div>
+    </div>`; },
+    onContinue(){ goTo('about'); }
+  },
+  about: {
+    render(){ return `<div class="screen" data-id="about"><div class="screen-scroll"><div class="v-center">
+      <div class="eyebrow"><span class="dot"></span>Quick context</div>
+      <h1 class="q-title">First, a little about you.</h1>
+      <div class="q-sub">Helps us compare you against the right benchmarks.</div>
+      <div class="q-field"><div class="q-field-label">Your age</div>
+        <div class="stepper"><button class="stepper-btn" id="age-dn">−</button><div class="stepper-val" id="age-val">${ST.age}</div><button class="stepper-btn" id="age-up">+</button></div>
+      </div>
+      <div class="q-field"><div class="q-field-label">People financially dependent on you</div>
+        <div class="stepper"><button class="stepper-btn" id="deps-dn">−</button><div class="stepper-val" id="deps-val">${ST.deps}</div><button class="stepper-btn" id="deps-up">+</button></div>
+        <div class="stepper-cap">Kids, parents, spouse — anyone who relies on your income</div>
+      </div>
+    </div></div>
+    <div class="btn-row"><button class="btn btn-ghost" onclick="goBack()">Back</button><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue</button></div>
+    </div>`; },
+    mount(root){
+      const ageVal = root.querySelector('#age-val'), depsVal = root.querySelector('#deps-val');
+      root.querySelector('#age-dn').onclick = ()=>{ ST.age = clamp(ST.age-1,18,80); ageVal.textContent=ST.age; };
+      root.querySelector('#age-up').onclick = ()=>{ ST.age = clamp(ST.age+1,18,80); ageVal.textContent=ST.age; };
+      root.querySelector('#deps-dn').onclick = ()=>{ ST.deps = clamp(ST.deps-1,0,6); depsVal.textContent=ST.deps; };
+      root.querySelector('#deps-up').onclick = ()=>{ ST.deps = clamp(ST.deps+1,0,6); depsVal.textContent=ST.deps; };
+    },
+    onContinue(){ goTo('inc-q'); }
+  },
+  'inc-q': {
+    render(){ return `<div class="screen" data-id="inc-q"><div class="screen-scroll"><div class="v-center">
+      <div class="eyebrow"><span class="dot"></span>Section 1 · Income</div>
+      <h1 class="q-title">What do you take home each month?</h1>
+      <div class="q-sub">After tax — your regular monthly income.</div>
+      <div class="q-field"><div class="q-field-label">Monthly take-home income</div>
+        <div class="q-input-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-income" inputmode="numeric" placeholder="50,000" value="${ST.income?fmtIndianInput(ST.income):''}"></div>
+      </div>
+      <div class="q-field"><div class="q-field-label">Roughly what you spend monthly</div>
+        <div class="q-input-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-spending" inputmode="numeric" placeholder="30,000" value="${ST.spending?fmtIndianInput(ST.spending):''}"></div>
+        <span class="q-hint">Rent, bills, groceries, EMIs — everything that leaves your account.</span>
+      </div>
+    </div></div>
+    <div class="btn-row"><button class="btn btn-ghost" onclick="goBack()">Back</button><button class="btn btn-primary" id="btn-continue" disabled onclick="continueClick()">Continue</button></div>
+    </div>`; },
+    mount(root){ wireCurrency('in-income','income',{max:20000000}); wireCurrency('in-spending','spending',{max:5000000}); root.querySelector('#in-income').focus(); },
+    onContinue(){ goTo(ST.income >= 1000000 ? 'inc-extreme' : 'inc-r'); }
+  },
+  'inc-extreme': {
+    render(){ return `<div class="screen" data-id="inc-extreme"><div class="screen-scroll"><div class="v-center" style="align-items:center;text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">🎩</div>
+      <h1 class="q-title" style="text-align:center">Okay, that's a lot of zeroes.</h1>
+      <div class="q-sub" style="text-align:center;margin-left:auto;margin-right:auto">This was built for the other 99.9% of India — at this income you've probably already got a wealth manager. Let's see what we've got anyway.</div>
+    </div></div>
+    <div class="btn-row"><button class="btn btn-ghost" onclick="goBack()">Fix my number</button><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue anyway →</button></div>
+    </div>`; },
+    onContinue(){ goTo('inc-r'); }
+  },
+  'inc-r': {
+    render(){
+      const insight = incomeInsight(ST.income);
+      const glowCls = insight.percentile>=95 ? 'glow-good' : insight.percentile<50 ? 'glow-start' : '';
+      return `<div class="screen" data-id="inc-r"><div class="screen-scroll"><div class="reveal">
+        <div class="reveal-badge">💰 Income check</div>
+        ${edgeFlourish(glowCls==='glow-good'?'good':null, 'Exceptional earner')}
+        <div class="reveal-visual ${glowCls}">${renderLadder(insight.percentile)}</div>
+        <div class="reveal-number">${insight.topLabel}</div>
+        <div class="reveal-headline">${insight.headline}</div>
+        <div class="reveal-body">${insight.body}</div>
+      </div></div>
+      <div class="btn-row reveal-continue"><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue →</button></div>
+      </div>`;
+    },
+    mount(){ const insight = incomeInsight(ST.income); if(insight.percentile>=90) setTimeout(()=>fireConfetti(insight.percentile>=99.5),500); },
+    onContinue(){ goTo('sav-q'); }
+  },
+  'sav-q': {
+    render(){
+      const showCorpus = ST.age>=50;
+      return `<div class="screen" data-id="sav-q"><div class="screen-scroll"><div class="v-center">
+        <div class="eyebrow"><span class="dot"></span>Section 2 · Savings</div>
+        <h1 class="q-title">How much have you saved up?</h1>
+        <div class="q-sub">Money you could get to quickly — bank balance, FDs. Not locked-in investments.</div>
+        <div class="q-field"><div class="q-field-label">Total savings right now</div>
+          <div class="q-input-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-savings" inputmode="numeric" placeholder="0" value="${ST.savings?fmtIndianInput(ST.savings):''}"></div>
+        </div>
+        <div class="q-field"><div class="q-field-label">How much you invest each month</div>
+          <div class="q-input-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-sip" inputmode="numeric" placeholder="0" value="${ST.sip?fmtIndianInput(ST.sip):''}"></div>
+          <span class="q-hint">SIPs, mutual funds, stocks — 0 if none yet</span>
+        </div>
+        ${showCorpus?`<div class="q-field"><div class="q-field-label">Total retirement savings so far</div>
+          <div class="q-input-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-corpus" inputmode="numeric" placeholder="0" value="${ST.retirementCorpus?fmtIndianInput(ST.retirementCorpus):''}"></div>
+          <span class="q-hint">PF, mutual funds, stocks — everything built up for retirement</span>
+        </div>`:''}
+      </div></div>
+      <div class="btn-row"><button class="btn btn-ghost" onclick="goBack()">Back</button><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue</button></div>
+      </div>`;
+    },
+    mount(root){ wireCurrency('in-savings','savings',{max:500000000}); wireCurrency('in-sip','sip',{max:5000000}); if(ST.age>=50) wireCurrency('in-corpus','retirementCorpus',{max:500000000}); root.querySelector('#in-savings').focus(); },
+    onContinue(){ goTo('sav-r'); }
+  },
+  'sav-r': {
+    render(){
+      const inp = deriveInp();
+      const liqFloor = Math.floor(inp.liq);
+      const insight = bufferInsight(liqFloor);
+      const glowCls = liqFloor>=12 ? 'glow-good' : liqFloor<=0 ? 'glow-empty' : '';
+      return `<div class="screen" data-id="sav-r"><div class="screen-scroll"><div class="reveal">
+        <div class="reveal-badge">🛟 Safety check</div>
+        ${edgeFlourish(glowCls==='glow-good'?'good':glowCls==='glow-empty'?'empty':null, glowCls==='glow-good'?'Outstanding cushion':'Zero cushion right now')}
+        <div class="reveal-visual ${glowCls}">${renderShield(0,'var(--k-safe)')}</div>
+        <div class="reveal-number"><span id="reveal-num">0</span> month${liqFloor===1?'':'s'}</div>
+        <div class="reveal-headline">${insight.headline}</div>
+        <div class="reveal-body">${insight.body}</div>
+        <div class="reveal-caption">Based on your monthly spending of ${krRs(inp.spend)} — not your income.</div>
+      </div></div>
+      <div class="btn-row reveal-continue"><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue →</button></div>
+      </div>`;
+    },
+    mount(root){
+      const inp = deriveInp(); const liqFloor = Math.floor(inp.liq); const pct = clamp(liqFloor/6*100,0,100);
+      animateShield(pct); animateCount(root.querySelector('#reveal-num'), liqFloor, {duration:900, decimals:0});
+      if(liqFloor>=6) setTimeout(()=>fireConfetti(liqFloor>=12),500);
+    },
+    onContinue(){ goTo('crd-q1'); }
+  },
+  'crd-q1': {
+    render(){ return `<div class="screen" data-id="crd-q1"><div class="screen-scroll"><div class="v-center">
+      <div class="eyebrow"><span class="dot"></span>Section 3 · Credit &amp; Loans</div>
+      <h1 class="q-title">What do your loan EMIs add up to?</h1>
+      <div class="q-sub">Total across every loan — home, auto, personal, everything.</div>
+      <div class="q-field"><div class="q-field-label">Total monthly EMI outflow</div>
+        <div class="q-input-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-emi" inputmode="numeric" placeholder="0" value="${ST.emi?fmtIndianInput(ST.emi):''}"></div>
+        <span class="q-hint" id="emi-hint">0 if you have no loans right now</span>
+      </div>
+      <div class="q-field"><div class="q-field-label">Credit score, if you know it <button class="skip" id="skip-score" type="button">Skip — I don't know it</button></div>
+        <div class="q-input-wrap" id="score-wrap"><span class="q-prefix">#</span><input class="q-input" id="in-score" inputmode="numeric" placeholder="750" value="${ST.knownScore?ST.knownScore:''}" maxlength="3"></div>
+      </div>
+    </div></div>
+    <div class="btn-row"><button class="btn btn-ghost" onclick="goBack()">Back</button><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue</button></div>
+    </div>`; },
+    mount(root){
+      const emiHint = root.querySelector('#emi-hint');
+      wireCurrency('in-emi','emi',{max:5000000, onInput: v=>{
+        emiHint.textContent = (v>0 && ST.spending>0 && v>ST.spending)
+          ? `That's more than your ₹${fmtIndianInput(ST.spending)} monthly spending — worth double-checking.`
+          : '0 if you have no loans right now';
+        emiHint.style.color = (v>0 && ST.spending>0 && v>ST.spending) ? 'var(--k-tradeoff)' : '';
+      }});
+      const scoreInput = root.querySelector('#in-score');
+      scoreInput.addEventListener('input', ()=>{ const v=parseNum(scoreInput.value).toString().slice(0,3); scoreInput.value=v; ST.knownScore = v?clamp(+v,300,900):null; });
+      scoreInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('btn-continue').click(); } });
+      root.querySelector('#skip-score').onclick = ()=>{ ST.knownScore=null; scoreInput.value=''; root.querySelector('#score-wrap').classList.add('disabled'); };
+      root.querySelector('#in-emi').focus();
+    },
+    onContinue(){ goTo('crd-q2'); }
+  },
+  'crd-q2': {
+    render(){ return `<div class="screen" data-id="crd-q2"><div class="screen-scroll"><div class="v-center">
+      <div class="eyebrow"><span class="dot"></span>Section 3 · Credit &amp; Loans</div>
+      <h1 class="q-title">And your credit cards?</h1>
+      <div class="q-sub">Just your revolving balance — the part you're carrying month to month.</div>
+      <div class="toggle-row" id="no-balance-row"><span>I always pay in full / no card</span><div class="toggle" id="no-balance-toggle"></div></div>
+      <div class="q-field"><div class="q-field-label">Current card balance carried</div>
+        <div class="q-input-wrap" id="bal-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-balance" inputmode="numeric" placeholder="0" value="${ST.cardBalance?fmtIndianInput(ST.cardBalance):''}"></div>
+      </div>
+      <div class="q-field"><div class="q-field-label">Total credit limit across cards</div>
+        <div class="q-input-wrap" id="lim-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-limit" inputmode="numeric" placeholder="0" value="${ST.cardLimit?fmtIndianInput(ST.cardLimit):''}"></div>
+      </div>
+    </div></div>
+    <div class="btn-row"><button class="btn btn-ghost" onclick="goBack()">Back</button><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue</button></div>
+    </div>`; },
+    mount(root){
+      wireCurrency('in-balance','cardBalance',{max:10000000}); wireCurrency('in-limit','cardLimit',{max:10000000});
+      const toggle = root.querySelector('#no-balance-toggle');
+      function sync(){ toggle.classList.toggle('on', ST.noCardBalance); root.querySelector('#bal-wrap').classList.toggle('disabled', ST.noCardBalance); root.querySelector('#lim-wrap').classList.toggle('disabled', ST.noCardBalance); }
+      root.querySelector('#no-balance-row').onclick = ()=>{ ST.noCardBalance = !ST.noCardBalance; sync(); };
+      sync();
+    },
+    onContinue(){ goTo('crd-r'); }
+  },
+  'crd-r': {
+    render(){
+      const inp = deriveInp(); const pillars = calcPillars(inp); const insight = creditInsight(inp, pillars);
+      const glowCls = pillars.credit>=0.80 ? 'glow-good' : pillars.credit<0.20 ? 'glow-empty' : '';
+      const scoreTxt = ST.knownScore!=null ? inp.crd : '~700 (est.)';
+      return `<div class="screen" data-id="crd-r"><div class="screen-scroll"><div class="reveal">
+        <div class="reveal-badge">📈 Credit health check</div>
+        ${edgeFlourish(glowCls==='glow-good'?'good':glowCls==='glow-empty'?'empty':null, glowCls==='glow-good'?'Excellent all round':'Needs attention')}
+        <div class="reveal-visual ${glowCls}">${renderGauge(pillars.credit)}</div>
+        <div class="reveal-number is-word">${insight.band}</div>
+        <div class="reveal-headline">${insight.headline}</div>
+        <div class="reveal-body">${insight.body}</div>
+        <div class="stat-chips" style="margin-top:6px">
+          <div class="stat-chip"><span class="ic">📋</span><span class="v">${inp.foi}%</span><span class="l">EMI/income</span></div>
+          <div class="stat-chip"><span class="ic">📈</span><span class="v">${scoreTxt}</span><span class="l">score</span></div>
+          <div class="stat-chip"><span class="ic">💳</span><span class="v">${inp.util}%</span><span class="l">card use</span></div>
+        </div>
+      </div></div>
+      <div class="btn-row reveal-continue"><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue →</button></div>
+      </div>`;
+    },
+    mount(){ const inp=deriveInp(); const pillars=calcPillars(inp); animateGauge(pillars.credit); if(pillars.credit>=0.80) setTimeout(()=>fireConfetti(pillars.credit>=0.92),500); },
+    onContinue(){ goTo('ins-q'); }
+  },
+  'ins-q': {
+    render(){ return `<div class="screen" data-id="ins-q"><div class="screen-scroll"><div class="v-center">
+      <div class="eyebrow"><span class="dot"></span>Section 4 · Insurance</div>
+      <h1 class="q-title">How protected is your family?</h1>
+      <div class="q-sub">The total cover amount on your policies — 0 if you don't have one.</div>
+      <div class="q-field"><div class="q-field-label">Life insurance cover amount</div>
+        <div class="q-input-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-life" inputmode="numeric" placeholder="0" value="${ST.lifeCover?fmtIndianInput(ST.lifeCover):''}"></div>
+      </div>
+      <div class="q-field"><div class="q-field-label">Health insurance cover amount</div>
+        <div class="q-input-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-health" inputmode="numeric" placeholder="0" value="${ST.healthCover?fmtIndianInput(ST.healthCover):''}"></div>
+        <span class="q-hint">For yourself and anyone covered under the same policy</span>
+      </div>
+    </div></div>
+    <div class="btn-row"><button class="btn btn-ghost" onclick="goBack()">Back</button><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue</button></div>
+    </div>`; },
+    mount(root){ wireCurrency('in-life','lifeCover',{max:1000000000}); wireCurrency('in-health','healthCover',{max:100000000}); root.querySelector('#in-life').focus(); },
+    onContinue(){ goTo('ins-r'); }
+  },
+  'ins-r': {
+    render(){
+      const inp = deriveInp(); const pillars = calcPillars(inp); const insight = insuranceInsight(inp, pillars);
+      // With no dependents, life cover isn't weighed at all (matches the
+      // engine's own logic below) — averaging it in anyway would unfairly
+      // drag the number down for someone whose health cover is actually fine.
+      const healthPct = inp.hlt/Math.max(1,pillars.hc_target)*100;
+      const pct = inp.deps>0 ? clamp(((inp.cvr/10)*100+healthPct)/2,0,100) : clamp(healthPct,0,100);
+      const glowCls = pct>=90 ? 'glow-good' : pct<15 ? 'glow-empty' : '';
+      return `<div class="screen" data-id="ins-r"><div class="screen-scroll"><div class="reveal">
+        <div class="reveal-badge">🛡️ Protection check</div>
+        ${edgeFlourish(glowCls==='glow-good'?'good':glowCls==='glow-empty'?'empty':null, glowCls==='glow-good'?'Fully covered':'Uninsured right now')}
+        <div class="reveal-visual ${glowCls}">${renderShield(0,'var(--k-gold)')}</div>
+        <div class="reveal-headline">${insight.headline}</div>
+        <div class="reveal-body">${insight.body}</div>
+        ${insight.note?`<div class="reveal-caption">${insight.note}</div>`:''}
+      </div></div>
+      <div class="btn-row reveal-continue"><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">See your report →</button></div>
+      </div>`;
+    },
+    mount(){
+      const inp=deriveInp(); const pillars=calcPillars(inp);
+      const healthPct = inp.hlt/Math.max(1,pillars.hc_target)*100;
+      const pct = inp.deps>0 ? clamp(((inp.cvr/10)*100+healthPct)/2,0,100) : clamp(healthPct,0,100);
+      animateShield(pct); if(pct>=90) setTimeout(()=>fireConfetti(pct>=99),500);
+    },
+    onContinue(){ goTo('summary'); }
+  },
+  summary: {
+    render(){
+      const inp = deriveInp();
+      const weights = calcWeights(inp);
+      const pillars = calcPillars(inp);
+      const fri = calcFRI(pillars, weights);
+      const pos = krPositive(inp, pillars);
+      const cands = krCandidates(inp, pillars, weights, fri);
+      const moves = krPrioritise(cands);
+      LAST_REPORT = {inp, pillars, weights, fri, pos, cands, moves};
+      const hasCritical = moves.some(m=>m.crit);
+      const effortRank = {LOW:0,MED:1,HIGH:2};
+      const todayMove = (moves[0] && moves[0].crit) ? moves[0] : moves.slice().sort((a,b)=>effortRank[a.effort]-effortRank[b.effort])[0];
+
+      let html = `<div class="kr-verdict"><div class="kr-eyebrow">Your KYFR Report</div><h1>${krVerdict(moves,hasCritical)}</h1></div>`;
+      html += `<div class="kr-positive"><div class="kr-badge"><span class="dot"></span>What you're already getting right</div><div class="kr-pos-headline">${pos.head}</div><div class="kr-pos-payoff">${pos.payoff}</div></div>`;
+      if(todayMove){
+        html += `<div class="kr-today"><div class="kr-today-eyebrow"><span class="kr-today-icon">${todayMove.icon||'◆'}</span>Start today — just this one thing</div><div class="kr-today-trigger">${todayMove.trigger}</div><div class="kr-today-body">${todayMove.action}.</div><div class="kr-today-chips"><span class="kr-today-chip">⏱ ${todayMove.mins||'a few min'}</span><span class="kr-today-chip">${todayMove.title}</span></div></div>`;
+      }
+      if(moves.length){
+        html += `<div class="kr-alsolbl">${moves.length===1?'Do this next':'Do these next, in order'}</div>`;
+        html += `<div class="kr-moves">`;
+        moves.forEach((m,i)=>{
+          html += `<div class="kr-move sev-${m.cls}"><div class="kr-move-head"><span class="kr-move-icon">${m.icon}</span><span class="kr-move-title">${m.title}</span><span class="kr-move-n">${i+1}</span></div><div class="kr-move-body"><div class="kr-move-hero"><span class="arrow">→</span>${m.action}.</div>${m.visualHtml}<div class="kr-move-why-mini"><span class="ic">💡</span><span>${m.microWhy}</span></div><div class="kr-cost-lbl">If you wait</div><div class="kr-cost"><span class="kr-cost-icon">${m.crit?'🔴':'⏳'}</span><span class="kr-cost-num">${m.costNum}</span><span class="kr-cost-cap">${m.costCap}</span></div></div></div>`;
+        });
+        html += `</div>`;
+      }
+      html += `<div class="summary-detail-cta" onclick="goTo('detail')"><div class="ic">🔍</div><div class="tx"><b>See the full breakdown</b><span>Every pillar, the numbers behind it, and why we prioritised what we did</span></div><div class="chev">→</div></div>`;
+      return `<div class="screen" data-id="summary"><div class="screen-scroll">${html}</div>
+        <div class="btn-row" style="flex-direction:column;gap:10px">
+          <button class="btn btn-primary" id="btn-continue" onclick="continueClick()">What's next →</button>
+          <button class="summary-footer-link" type="button" onclick="goTo('detail')">🔍 See the full breakdown →</button>
+        </div>
+      </div>`;
+    },
+    onContinue(){ goTo('cta'); }
+  },
+  detail: {
+    render(){
+      const {inp, pillars, cands, moves} = LAST_REPORT;
+      const cards = CASCADE.map(key => buildPillarDetail(key, inp, pillars, cands, moves));
+      const items = cards.map(c => `<div class="acc">
+          <div class="acc-head" ${c.picked && c.rank===0 ? 'data-priority-1' : ''} onclick="toggleAcc(this)">
+            <div class="acc-pillar-icon">${c.icon}</div>
+            <div class="ttl">${c.title}${c.picked?`<span class="priority-tag">#${c.rank+1} priority</span>`:''}</div>
+            <div class="sev-pill ${c.sevCls}">${c.sevLabel}</div>
+            <svg class="acc-chev" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="acc-body"><div class="acc-body-in">
+            ${c.actionLine?`<div class="acc-action-hero"><span class="arrow">→</span>${c.actionLine}</div>`:''}
+            ${c.visual}
+            <div class="stat-chips">${c.chips.map(ch=>`<div class="stat-chip"><span class="ic">${ch.ic}</span><span class="v">${ch.v}</span><span class="l">${ch.l}</span></div>`).join('')}</div>
+            ${c.note?`<div class="acc-caption" style="font-style:normal;color:var(--k-tradeoff)">ℹ️ ${c.note}</div>`:''}
+            <div class="acc-caption">${c.whyMatters}</div>
+            <div class="rank-reason"><span class="n">💡</span><span>${c.reason}</span></div>
+          </div></div>
+        </div>`).join('');
+      return `<div class="screen" data-id="detail"><div class="screen-scroll">
+        <div class="eyebrow"><span class="dot"></span>The full breakdown</div>
+        <h1 class="q-title">Every pillar, at a glance.</h1>
+        ${buildOverviewRing(cards)}
+        ${items}
+      </div>
+      <div class="btn-row"><button class="btn btn-ghost" onclick="goTo('summary')">← Back to report</button><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue →</button></div>
+      </div>`;
+    },
+    mount(root){
+      const target = root.querySelector('[data-priority-1]') || root.querySelector('.acc-head');
+      if(target) toggleAcc(target);
+    },
+    onContinue(){ goTo('cta'); }
+  },
+  cta: {
+    render(){ return `<div class="screen" data-id="cta"><div class="screen-scroll"><div class="cta-screen" style="min-height:100%">
+      <div class="cta-phone"><img src="${LOGO_SRC}" alt="KYFR"></div>
+      <h1>This was just a <em>preview</em>.</h1>
+      <p>The real KYFR app tracks this automatically, updates it every month, and goes far deeper than four questions ever could.</p>
+      <div class="cta-features">
+        <div class="cta-feature"><span class="ic">🔄</span><span>Auto-updates as your accounts change</span></div>
+        <div class="cta-feature"><span class="ic">📉</span><span>Watches your money get stronger, month by month</span></div>
+        <div class="cta-feature"><span class="ic">🎯</span><span>Personalised moves, not generic advice</span></div>
+      </div>
+      <form class="notify-form" onsubmit="return handleNotify(event)">
+        <input class="notify-input" type="email" placeholder="you@email.com" required id="notify-email">
+        <button class="btn btn-primary" type="submit" style="flex:none;padding:14px 22px">Notify me</button>
+      </form>
+      <button class="btn-text cta-restart" type="button" onclick="restartFlow()">Start over with different numbers</button>
+    </div></div></div>`; },
+    mount(){ setTimeout(fireConfetti, 300); }
+  }
+};
+
+function toggleAcc(headEl){
+  const acc = headEl.closest('.acc');
+  const body = acc.querySelector('.acc-body');
+  const isOpen = acc.classList.contains('open');
+  if(isOpen){ acc.classList.remove('open'); body.style.maxHeight = null; }
+  else { acc.classList.add('open'); body.style.maxHeight = body.scrollHeight+'px'; }
+}
+function handleNotify(e){
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  btn.textContent = "You're on the list ✓"; btn.disabled = true;
+  return false;
+}
+function restartFlow(){
+  Object.assign(ST, {age:28,deps:0,income:0,spending:0,savings:0,sip:0,retirementCorpus:0,emi:0,knownScore:null,cardBalance:0,cardLimit:0,noCardBalance:false,lifeCover:0,healthCover:0});
+  screenHistory = []; document.getElementById('screens').innerHTML=''; currentScreenId = null;
+  goTo('welcome');
+}
+
+// ══════════════════════════════════════════════════════════════
+// 7. ROUTER
+// ══════════════════════════════════════════════════════════════
+let currentScreenId = null;
+let screenHistory = [];
+const VALIDATORS = { 'inc-q': () => ST.income>0 && ST.spending>0 };
+
+function continueClick(){ const s=SCREENS[currentScreenId]; if(s && s.onContinue) s.onContinue(); }
+function goBack(){ const prev = screenHistory.pop(); if(prev) goTo(prev, true); }
+
+let isTransitioning = false;
+function goTo(id, isBack){
+  if(isTransitioning) return; // ignore rapid double-taps mid-transition
+  isTransitioning = true;
+  if(!isBack && currentScreenId) screenHistory.push(currentScreenId);
+  const container = document.getElementById('screens');
+  container.querySelectorAll('.screen:not(.active)').forEach(n=>n.remove()); // defensive: clear any stragglers
+  const prev = container.querySelector('.screen.active');
+  const node = el(SCREENS[id].render());
+  container.appendChild(node);
+  currentScreenId = id;
+  updateProgress(id);
+  updateSidePanel(id);
+  requestAnimationFrame(()=>{
+    node.classList.add('active');
+    if(prev){ prev.classList.remove('active'); prev.classList.add('leaving'); }
+  });
+  if(SCREENS[id].mount) SCREENS[id].mount(node);
+  validateCurrent();
+  const scrollEl = node.querySelector('.screen-scroll'); if(scrollEl) scrollEl.scrollTop = 0;
+  setTimeout(()=>{ if(prev && prev.parentNode) prev.remove(); isTransitioning = false; }, 460);
+}
+function validateCurrent(){
+  const btn = document.getElementById('btn-continue');
+  if(!btn) return;
+  const v = VALIDATORS[currentScreenId];
+  btn.disabled = v ? !v() : false;
+}
+function updateProgress(id){
+  const rail = document.getElementById('progress-rail');
+  rail.hidden = ['welcome','about','cta'].includes(id);
+  const map = {'inc-q':0,'inc-r':0,'sav-q':1,'sav-r':1,'crd-q1':2,'crd-q2':2,'crd-r':2,'ins-q':3,'ins-r':3};
+  const keys = ['income','savings','credit','insurance'];
+  if(['summary','detail'].includes(id)){ keys.forEach(k=>document.getElementById('pf-'+k).style.width='100%'); return; }
+  if(!(id in map)) return;
+  const activeIdx = map[id];
+  keys.forEach((k,i)=>{ document.getElementById('pf-'+k).style.width = i<activeIdx?'100%': i===activeIdx?(id.endsWith('-r')?'100%':'45%'):'0%'; });
+}
+const SIDE_CONTENT = {
+  welcome: {label:'Welcome', headline:'Two minutes.<br>Four honest answers.'},
+  about: {label:'Before we begin', headline:'Just the basics.'},
+  'inc-q': {label:'Section 1 of 4', headline:'Income'}, 'inc-r': {label:'Section 1 of 4', headline:'Income'},
+  'sav-q': {label:'Section 2 of 4', headline:'Savings'}, 'sav-r': {label:'Section 2 of 4', headline:'Savings'},
+  'crd-q1': {label:'Section 3 of 4', headline:'Credit &amp; Loans'}, 'crd-q2': {label:'Section 3 of 4', headline:'Credit &amp; Loans'}, 'crd-r': {label:'Section 3 of 4', headline:'Credit &amp; Loans'},
+  'ins-q': {label:'Section 4 of 4', headline:'Insurance'}, 'ins-r': {label:'Section 4 of 4', headline:'Insurance'},
+  'inc-extreme': {label:'Section 1 of 4', headline:'Income'},
+  summary: {label:'Your report', headline:'Where you stand.'},
+  detail: {label:'The full breakdown', headline:'Every pillar,<br>examined.'},
+  cta: {label:"What's next", headline:'Go deeper<br>in the app.'},
+};
+function updateSidePanel(id){
+  const c = SIDE_CONTENT[id] || SIDE_CONTENT.welcome;
+  const labelEl = document.getElementById('side-label'), headEl = document.getElementById('side-headline');
+  if(labelEl) labelEl.textContent = c.label;
+  if(headEl) headEl.innerHTML = c.headline;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 8. INIT
+// ══════════════════════════════════════════════════════════════
+document.getElementById('side-logo-wrap').innerHTML = `<img src="${LOGO_SRC}" alt="KYFR">`;
+document.getElementById('side-watermark').src = LOGO_SRC;
+goTo('welcome');
+</script>
+</body>
+</html>
