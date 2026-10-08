@@ -2,7 +2,8 @@
  * KYFR onboarding leads: receives one lead from the web app and writes it to the "Leads" tab.
  *
  * Setup (once): open the spreadsheet, Extensions > Apps Script, paste this file, then
- * Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone.
+ *   1. pick "setup" in the function menu and press Run (formats the Leads rows; takes about a minute),
+ *   2. Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone.
  * Copy the web app URL into VITE_LEADS_WEBHOOK_URL (see README).
  *
  * @OnlyCurrentDoc  (limits the permission Google asks for to this one spreadsheet)
@@ -10,6 +11,7 @@
 
 const SHEET_NAME = 'Leads';
 const FIRST_DATA_ROW = 3; // row 1 = group band, row 2 = column headers
+const LAST_ROW = 5000; // rows that get formatted by setup()
 const MAX_SEARCH_ROWS = 5000; // how far back to look for a repeat of the same session
 
 // Same order as the sheet's columns and src/data/lead-columns.json (a test keeps them in step).
@@ -26,7 +28,7 @@ const COLUMNS = [
   'notes'
 ];
 const TEAM_COLUMNS = ['followUp', 'notes'];
-// Display format per column, applied on every write so rows look right whatever the sheet inherited.
+// Display format per column, applied once by setup() so every row the script fills looks right.
 const FORMATS = {
   submittedAt: "dd mmm yyyy, hh:mm",
   phone: "@",
@@ -74,7 +76,7 @@ const NUMERIC = [
   'healthCover', 'readiness'
 ];
 
-// Horizontal alignment per column, applied with the formats on every new row.
+// Horizontal alignment per column, applied once by setup().
 const ALIGN = {
   submittedAt: 'left',
   phone: 'left',
@@ -146,23 +148,37 @@ function save_(lead) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (!sheet) throw new Error('Missing tab: ' + SHEET_NAME);
 
-  const payloadKeys = COLUMNS.filter(function (k) { return k !== 'submittedAt' && TEAM_COLUMNS.indexOf(k) < 0; });
-  const values = payloadKeys.map(function (k) { return clean_(k, lead[k]); });
-  const firstPayloadCol = COLUMNS.indexOf(payloadKeys[0]) + 1;
-
   // The same session sent twice (a retry after a bad connection) updates its row instead of adding one.
-  let row = findSessionRow_(sheet, String(lead.sessionId || ''));
-  if (!row) {
-    row = Math.max(sheet.getLastRow() + 1, FIRST_DATA_ROW);
-    const whole = sheet.getRange(row, 1, 1, COLUMNS.length);
-    whole.setNumberFormats([COLUMNS.map(function (k) { return FORMATS[k]; })]);
-    whole.setHorizontalAlignments([COLUMNS.map(function (k) { return ALIGN[k]; })]);
-    whole.setVerticalAlignment('middle').setFontFamily('Roboto').setFontSize(10).setFontColor('#241B33');
-    sheet.getRange(row, COLUMNS.indexOf('sessionId') + 1).setFontColor('#7A7388');
-    sheet.getRange(row, 1).setValue(new Date());
-    sheet.getRange(row, COLUMNS.indexOf('followUp') + 1).setValue('New');
+  const existing = findSessionRow_(sheet, String(lead.sessionId || ''));
+  if (existing) {
+    const payloadKeys = COLUMNS.filter(function (k) { return k !== 'submittedAt' && TEAM_COLUMNS.indexOf(k) < 0; });
+    const values = payloadKeys.map(function (k) { return clean_(k, lead[k]); });
+    sheet.getRange(existing, COLUMNS.indexOf(payloadKeys[0]) + 1, 1, values.length).setValues([values]);
+    return;
   }
-  sheet.getRange(row, firstPayloadCol, 1, values.length).setValues([values]);
+
+  // One write per new lead: formats, fonts and alignment were applied to the empty rows by setup().
+  sheet.appendRow(COLUMNS.map(function (k) {
+    if (k === 'submittedAt') return new Date();
+    if (k === 'followUp') return 'New';
+    if (TEAM_COLUMNS.indexOf(k) >= 0) return '';
+    return clean_(k, lead[k]);
+  }));
+}
+
+// Run once from the editor (function menu > setup > Run). Formats the empty Leads rows so that
+// each submission only has to write values. Safe to run again.
+function setup() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sheet) throw new Error('Missing tab: ' + SHEET_NAME);
+  const rows = LAST_ROW - FIRST_DATA_ROW + 1;
+  sheet.getRange(FIRST_DATA_ROW, 1, rows, COLUMNS.length)
+    .setVerticalAlignment('middle').setFontFamily('Roboto').setFontSize(10).setFontColor('#241B33');
+  COLUMNS.forEach(function (key, i) {
+    const col = sheet.getRange(FIRST_DATA_ROW, i + 1, rows, 1);
+    col.setNumberFormat(FORMATS[key]).setHorizontalAlignment(ALIGN[key]);
+    if (key === 'sessionId') col.setFontColor('#7A7388');
+  });
 }
 
 function findSessionRow_(sheet, sessionId) {

@@ -41,11 +41,18 @@ On the last screen a person enters an email and a mobile number. Tapping **Notif
 
 0. Make the sheet: `python3 scripts/google-sheet/build_sheet.py KYFR-onboarding-leads.xlsx` (needs `pip install openpyxl`), upload it to Google Drive, open it, and choose **File → Save as Google Sheets**. Add `--sample` for a demo copy with four made-up rows.
 1. Open the sheet, then **Extensions → Apps Script**. Replace the contents of `Code.gs` with `scripts/google-sheet/Code.gs` from this repo.
-2. **Deploy → New deployment → Web app**. Execute as **Me**, access **Anyone**. Authorise when asked, then copy the web app URL.
-3. In Vercel, add the environment variable `VITE_LEADS_WEBHOOK_URL` with that URL (Production), and redeploy. For local testing, put it in `.env.local`.
-4. Test: `https://…/exec` opened in a browser should answer `{"ok":true,"service":"kyfr-leads"}`.
+2. In the function menu above the editor choose **setup** and press **Run** (takes about a minute, authorise if asked). It formats the empty rows so each submission is a single quick write.
+3. **Deploy → New deployment → Web app**. Execute as **Me**, access **Anyone**. Authorise when asked, then copy the web app URL.
+4. In Vercel, add the environment variable `VITE_LEADS_WEBHOOK_URL` with that URL (Production), and redeploy. For local testing, put it in `.env.local`.
+5. Test: `https://…/exec` opened in a browser should answer `{"ok":true,"service":"kyfr-leads"}`.
 
 Until the variable is set the form still works but saves nothing, and the build prints a warning.
+
+To change the script later, paste the new version, then **Deploy → Manage deployments → pencil → Version: New version → Deploy**. The URL stays the same.
+
+### How a save behaves
+
+Google can take anywhere from 4 to 40+ seconds to write a row. If the sheet answers within about 3.5 seconds the person sees "You're on the list" as soon as it's saved. If it's slower they see it anyway and the save carries on in the background. A save that then fails is kept in the browser (`localStorage`) and re-sent on their next visit, and because every send carries the same session id, the sheet still ends up with one row. If the sheet can't be reached quickly (offline, server error) the person is told and can retry.
 
 ### Good to know
 

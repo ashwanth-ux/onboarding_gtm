@@ -12,15 +12,18 @@ import { walk } from './walk.mjs'
 
 const hits = []
 let mode = 'cors' // cors | nocors | error500 | refuse
+let delay = 0 // how long the stand-in sheet takes to answer
 const hook = createServer((req, res) => {
   let body = ''
   req.on('data', (d) => (body += d))
   req.on('end', () => {
     if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }); return res.end() }
-    hits.push({ contentType: req.headers['content-type'], lead: JSON.parse(body || '{}') })
+    hits.push({ contentType: req.headers['content-type'], lead: JSON.parse(body || '{}'), at: Date.now() })
     const cors = mode === 'nocors' ? {} : { 'access-control-allow-origin': '*' }
-    if (mode === 'error500') { res.writeHead(500, cors); return res.end('{}') }
-    res.writeHead(200, { 'content-type': 'application/json', ...cors }); res.end(JSON.stringify({ ok: true }))
+    setTimeout(() => {
+      if (mode === 'error500') { res.writeHead(500, cors); return res.end('{}') }
+      res.writeHead(200, { 'content-type': 'application/json', ...cors }); res.end(JSON.stringify({ ok: true }))
+    }, delay)
   })
 })
 await new Promise((r) => hook.listen(0, '127.0.0.1', r))
@@ -70,8 +73,35 @@ await form(b, 'meera@example.com', '9812300003'); await b.wait(1500)
 s = await state(b); check('shows the confirmation', /on the list/.test(s.btn), JSON.stringify(s))
 check('every request carries the same session id (so the sheet keeps one row)', hits.length >= 1 && new Set(hits.map((h) => h.lead.sessionId)).size === 1, String(hits.length))
 
+console.log('slow sheet (6s): the person is not kept waiting, and the save still lands')
+mode = 'cors'; delay = 6000; hits.length = 0
+await b.goto(base, 600); await walk(b, base, 'starter')
+const t0 = Date.now()
+await form(b, 'slow@example.com', '9812300004')
+for (let i = 0; i < 40; i++) { await b.wait(250); if (/on the list/.test((await state(b)).btn)) break }
+const waited = Date.now() - t0
+s = await state(b)
+check('shows the confirmation within ~5s even though the sheet takes 6s', /on the list/.test(s.btn) && waited < 5500, `${waited}ms ${JSON.stringify(s)}`)
+await b.wait(4000)
+check('the request still completed in the background', hits.length === 1, String(hits.length))
+
+console.log('slow sheet that then fails: kept and re-sent on the next visit')
+mode = 'error500'; delay = 6000; hits.length = 0
+await b.goto(base, 600); await walk(b, base, 'starter')
+await form(b, 'late@example.com', '9812300005')
+for (let i = 0; i < 40; i++) { await b.wait(250); if (/on the list/.test((await state(b)).btn)) break }
+check('the person still sees the confirmation', /on the list/.test((await state(b)).btn))
+await b.wait(7000)
+const queued = JSON.parse((await b.eval(`localStorage.getItem('kyfr-pending-leads')`)) || '[]')
+check('the failed lead is kept in the browser', queued.length === 1 && queued[0].phone === '+919812300005', JSON.stringify(queued).slice(0, 200))
+const sid = queued[0]?.sessionId
+mode = 'cors'; delay = 0; hits.length = 0
+await b.goto(base, 2500)
+check('it is re-sent on the next visit, same session so the sheet keeps one row', hits.length === 1 && hits[0].lead.sessionId === sid, JSON.stringify(hits.map((h) => h.lead.sessionId)))
+check('and the backlog is cleared', (await b.eval(`localStorage.getItem('kyfr-pending-leads')`)) === null)
+
 console.log('server error: do not claim it was saved')
-mode = 'error500'; hits.length = 0
+mode = 'error500'; delay = 0; hits.length = 0
 await b.goto(base, 600); await walk(b, base, 'starter')
 await form(b, 'meera@example.com', '9812300003'); await b.wait(1200)
 s = await state(b); check('shows an error and lets the person retry', /couldn.t save/i.test(s.error) && !s.disabled && /notify me/i.test(s.btn), JSON.stringify(s))

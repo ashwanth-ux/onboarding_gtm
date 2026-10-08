@@ -117,6 +117,7 @@ describe('postLead', () => {
     expect(await postLead('https://script.example/exec', lead, f)).toBe('sent')
     const [, init] = f.mock.calls[0]
     expect(init.method).toBe('POST')
+    expect(init.keepalive).toBe(true)
     expect(init.headers['Content-Type']).toMatch(/^text\/plain/)
     expect(JSON.parse(init.body)).toEqual(lead)
   })

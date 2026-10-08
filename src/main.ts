@@ -11,6 +11,8 @@ import './styles/detail.css'
 import { LOGO_SRC } from './assets'
 import { goTo, goBack, continueClick, restartFlow } from './router'
 import { toggleAcc, handleNotify } from './screens'
+import { LEADS_URL, postLead } from './api'
+import { flushOutbox } from './outbox'
 
 // Screens are HTML strings with inline onclick/onsubmit handlers, so these must be global.
 Object.assign(window, { goTo, goBack, continueClick, restartFlow, toggleAcc, handleNotify })
@@ -18,3 +20,4 @@ Object.assign(window, { goTo, goBack, continueClick, restartFlow, toggleAcc, han
 document.getElementById('side-logo-wrap').innerHTML = `<img src="${LOGO_SRC}" alt="KYFR">`
 ;(document.getElementById('side-watermark') as HTMLImageElement).src = LOGO_SRC
 goTo('welcome')
+if (LEADS_URL) flushOutbox((lead) => postLead(LEADS_URL, lead)).catch(() => {})

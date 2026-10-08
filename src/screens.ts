@@ -10,6 +10,8 @@ import { krCandidates, krPositive, krPrioritise, krRs, krVerdict } from './engin
 import { buildOverviewRing, buildPillarDetail } from './ui/detail'
 import { LEADS_URL, postLead } from './api'
 import { buildLead, normaliseEmail, normalisePhone } from './lead'
+import { submitLead } from './submit'
+import { queueLead } from './outbox'
 
 export let LAST_REPORT = null;
 export const SCREENS = {
@@ -388,7 +390,7 @@ export async function handleNotify(e){
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
     const lead = buildLead({email, phone}, ST, LAST_REPORT, {device: innerWidth < 768 ? 'Mobile' : 'Desktop', search: location.search, referrer: document.referrer});
-    await postLead(LEADS_URL, lead);
+    await submitLead(lead, (l) => postLead(LEADS_URL, l), queueLead);
     form.querySelectorAll('input').forEach(i => i.disabled = true);
     btn.textContent = "You're on the list ✓";
   } catch {
