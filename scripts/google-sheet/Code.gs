@@ -4,6 +4,8 @@
  * Setup (once): open the spreadsheet, Extensions > Apps Script, paste this file, then
  * Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone.
  * Copy the web app URL into VITE_LEADS_WEBHOOK_URL (see README).
+ *
+ * @OnlyCurrentDoc  (limits the permission Google asks for to this one spreadsheet)
  */
 
 const SHEET_NAME = 'Leads';
