@@ -1,6 +1,7 @@
 import { SCREENS } from './screens'
 
 import { ST } from './state'
+import { newSession } from './lead'
 import { el } from './ui/dom'
 import { updateProgress, updateSidePanel } from './ui/chrome'
 
@@ -40,6 +41,7 @@ export function validateCurrent(){
   btn.disabled = v ? !v() : false;
 }
 export function restartFlow(){
+  newSession();
   Object.assign(ST, {age:28,deps:0,income:0,spending:0,savings:0,sip:0,retirementCorpus:0,emi:0,knownScore:null,cardBalance:0,cardLimit:0,noCardBalance:false,lifeCover:0,healthCover:0});
   screenHistory = []; document.getElementById('screens').innerHTML=''; currentScreenId = null;
   goTo('welcome');

@@ -8,6 +8,8 @@ import { bufferInsight, creditInsight, incomeInsight, insuranceInsight } from '.
 import { animateGauge, animateShield, edgeFlourish, renderGauge, renderLadder, renderShield } from './ui/visuals'
 import { krCandidates, krPositive, krPrioritise, krRs, krVerdict } from './engine/report'
 import { buildOverviewRing, buildPillarDetail } from './ui/detail'
+import { LEADS_URL, postLead } from './api'
+import { buildLead, normaliseEmail, normalisePhone } from './lead'
 
 export let LAST_REPORT = null;
 export const SCREENS = {
@@ -348,9 +350,13 @@ export const SCREENS = {
         <div class="cta-feature"><span class="ic">📉</span><span>Watches your money get stronger, month by month</span></div>
         <div class="cta-feature"><span class="ic">🎯</span><span>Personalised moves, not generic advice</span></div>
       </div>
-      <form class="notify-form" onsubmit="return handleNotify(event)">
-        <input class="notify-input" type="email" placeholder="you@email.com" required id="notify-email">
-        <button class="btn btn-primary" type="submit" style="flex:none;padding:14px 22px">Notify me</button>
+      <form class="notify-form" onsubmit="handleNotify(event); return false;" novalidate>
+        <input class="notify-input" type="email" inputmode="email" autocomplete="email" placeholder="you@email.com" required id="notify-email" aria-label="Email">
+        <div class="notify-phone"><span>+91</span><input type="tel" inputmode="tel" autocomplete="tel-national" placeholder="Mobile number" required id="notify-phone" aria-label="Mobile number"></div>
+        <input class="notify-trap" type="text" name="website" id="notify-website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <div class="notify-error" id="notify-error" role="alert"></div>
+        <button class="btn btn-primary" type="submit" id="notify-btn">Notify me</button>
+        <div class="notify-consent">We'll use these only to tell you when the app is ready.</div>
       </form>
       <button class="btn-text cta-restart" type="button" onclick="restartFlow()">Start over with different numbers</button>
     </div></div></div>`; },
@@ -365,9 +371,28 @@ export function toggleAcc(headEl){
   if(isOpen){ acc.classList.remove('open'); body.style.maxHeight = null; }
   else { acc.classList.add('open'); body.style.maxHeight = body.scrollHeight+'px'; }
 }
-export function handleNotify(e){
+export async function handleNotify(e){
   e.preventDefault();
-  const btn = e.target.querySelector('button');
-  btn.textContent = "You're on the list ✓"; btn.disabled = true;
-  return false;
+  const form = e.target;
+  const btn = form.querySelector('#notify-btn');
+  const errEl = form.querySelector('#notify-error');
+  const fail = (msg) => { errEl.textContent = msg; };
+  fail('');
+  const email = normaliseEmail(form.querySelector('#notify-email').value);
+  const phone = normalisePhone(form.querySelector('#notify-phone').value);
+  if(!email) return fail('Enter a valid email address.');
+  if(!phone) return fail('Enter a 10-digit Indian mobile number.');
+  // A bot fills every field; a person never sees this one. Pretend it worked.
+  if(form.querySelector('#notify-website').value) { btn.textContent = "You're on the list ✓"; btn.disabled = true; return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const lead = buildLead({email, phone}, ST, LAST_REPORT, {device: innerWidth < 768 ? 'Mobile' : 'Desktop', search: location.search, referrer: document.referrer});
+    await postLead(LEADS_URL, lead);
+    form.querySelectorAll('input').forEach(i => i.disabled = true);
+    btn.textContent = "You're on the list ✓";
+  } catch {
+    btn.disabled = false; btn.textContent = 'Notify me';
+    fail("We couldn't save that. Check your connection and try again.");
+  }
 }

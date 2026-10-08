@@ -1,0 +1,337 @@
+[
+ {
+  "key": "submittedAt",
+  "label": "Submitted",
+  "group": "Contact",
+  "kind": "datetime",
+  "width": 19,
+  "format": "dd mmm yyyy, hh:mm",
+  "align": "left"
+ },
+ {
+  "key": "phone",
+  "label": "Phone",
+  "group": "Contact",
+  "kind": "text",
+  "width": 16,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "email",
+  "label": "Email",
+  "group": "Contact",
+  "kind": "text",
+  "width": 28,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "age",
+  "label": "Age",
+  "group": "Profile",
+  "kind": "number",
+  "width": 7,
+  "format": "0",
+  "align": "center"
+ },
+ {
+  "key": "dependents",
+  "label": "Dependents",
+  "group": "Profile",
+  "kind": "number",
+  "width": 13,
+  "format": "0",
+  "align": "center"
+ },
+ {
+  "key": "income",
+  "label": "Monthly income",
+  "group": "Income",
+  "kind": "rupee",
+  "width": 16,
+  "format": "[>=10000000]\"₹\"##\\,##\\,##\\,##0;[>=100000]\"₹\"##\\,##\\,##0;\"₹\"##,##0",
+  "align": "right"
+ },
+ {
+  "key": "spending",
+  "label": "Monthly spending",
+  "group": "Income",
+  "kind": "rupee",
+  "width": 17,
+  "format": "[>=10000000]\"₹\"##\\,##\\,##\\,##0;[>=100000]\"₹\"##\\,##\\,##0;\"₹\"##,##0",
+  "align": "right"
+ },
+ {
+  "key": "incomeRank",
+  "label": "Income rank",
+  "group": "Income",
+  "kind": "toppct",
+  "width": 13,
+  "format": "\"Top \"0.0\"%\"",
+  "align": "center"
+ },
+ {
+  "key": "savings",
+  "label": "Savings",
+  "group": "Savings",
+  "kind": "rupee",
+  "width": 15,
+  "format": "[>=10000000]\"₹\"##\\,##\\,##\\,##0;[>=100000]\"₹\"##\\,##\\,##0;\"₹\"##,##0",
+  "align": "right"
+ },
+ {
+  "key": "sip",
+  "label": "Monthly SIP",
+  "group": "Savings",
+  "kind": "rupee",
+  "width": 14,
+  "format": "[>=10000000]\"₹\"##\\,##\\,##\\,##0;[>=100000]\"₹\"##\\,##\\,##0;\"₹\"##,##0",
+  "align": "right"
+ },
+ {
+  "key": "retirementCorpus",
+  "label": "Retirement corpus",
+  "group": "Savings",
+  "kind": "rupee",
+  "width": 18,
+  "format": "[>=10000000]\"₹\"##\\,##\\,##\\,##0;[>=100000]\"₹\"##\\,##\\,##0;\"₹\"##,##0",
+  "align": "right"
+ },
+ {
+  "key": "runwayMonths",
+  "label": "Runway",
+  "group": "Savings",
+  "kind": "months",
+  "width": 10,
+  "format": "0.0\" mo\"",
+  "align": "center"
+ },
+ {
+  "key": "emi",
+  "label": "Monthly EMI",
+  "group": "Credit & loans",
+  "kind": "rupee",
+  "width": 14,
+  "format": "[>=10000000]\"₹\"##\\,##\\,##\\,##0;[>=100000]\"₹\"##\\,##\\,##0;\"₹\"##,##0",
+  "align": "right"
+ },
+ {
+  "key": "creditScore",
+  "label": "Credit score",
+  "group": "Credit & loans",
+  "kind": "integer",
+  "width": 12,
+  "format": "0",
+  "align": "center"
+ },
+ {
+  "key": "emiPct",
+  "label": "EMI / income",
+  "group": "Credit & loans",
+  "kind": "percent",
+  "width": 13,
+  "format": "0\"%\"",
+  "align": "center"
+ },
+ {
+  "key": "cardBalance",
+  "label": "Card balance",
+  "group": "Credit & loans",
+  "kind": "rupee",
+  "width": 14,
+  "format": "[>=10000000]\"₹\"##\\,##\\,##\\,##0;[>=100000]\"₹\"##\\,##\\,##0;\"₹\"##,##0",
+  "align": "right"
+ },
+ {
+  "key": "cardLimit",
+  "label": "Card limit",
+  "group": "Credit & loans",
+  "kind": "rupee",
+  "width": 14,
+  "format": "[>=10000000]\"₹\"##\\,##\\,##\\,##0;[>=100000]\"₹\"##\\,##\\,##0;\"₹\"##,##0",
+  "align": "right"
+ },
+ {
+  "key": "cardUtilPct",
+  "label": "Card use",
+  "group": "Credit & loans",
+  "kind": "percent",
+  "width": 10,
+  "format": "0\"%\"",
+  "align": "center"
+ },
+ {
+  "key": "creditBand",
+  "label": "Credit health",
+  "group": "Credit & loans",
+  "kind": "status",
+  "width": 14,
+  "format": "@",
+  "align": "center"
+ },
+ {
+  "key": "lifeCover",
+  "label": "Life cover",
+  "group": "Insurance",
+  "kind": "rupee",
+  "width": 16,
+  "format": "[>=10000000]\"₹\"##\\,##\\,##\\,##0;[>=100000]\"₹\"##\\,##\\,##0;\"₹\"##,##0",
+  "align": "right"
+ },
+ {
+  "key": "healthCover",
+  "label": "Health cover",
+  "group": "Insurance",
+  "kind": "rupee",
+  "width": 15,
+  "format": "[>=10000000]\"₹\"##\\,##\\,##\\,##0;[>=100000]\"₹\"##\\,##\\,##0;\"₹\"##,##0",
+  "align": "right"
+ },
+ {
+  "key": "readiness",
+  "label": "Readiness score",
+  "group": "Report",
+  "kind": "score",
+  "width": 15,
+  "format": "0",
+  "align": "center"
+ },
+ {
+  "key": "sevSavings",
+  "label": "Safety cushion",
+  "group": "Report",
+  "kind": "status",
+  "width": 14,
+  "format": "@",
+  "align": "center"
+ },
+ {
+  "key": "sevCredit",
+  "label": "Credit & loans",
+  "group": "Report",
+  "kind": "status",
+  "width": 14,
+  "format": "@",
+  "align": "center"
+ },
+ {
+  "key": "sevInsurance",
+  "label": "Insurance",
+  "group": "Report",
+  "kind": "status",
+  "width": 14,
+  "format": "@",
+  "align": "center"
+ },
+ {
+  "key": "sevInvesting",
+  "label": "Investing",
+  "group": "Report",
+  "kind": "status",
+  "width": 14,
+  "format": "@",
+  "align": "center"
+ },
+ {
+  "key": "priority1",
+  "label": "#1 priority",
+  "group": "Report",
+  "kind": "text",
+  "width": 30,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "priority2",
+  "label": "#2 priority",
+  "group": "Report",
+  "kind": "text",
+  "width": 30,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "priority3",
+  "label": "#3 priority",
+  "group": "Report",
+  "kind": "text",
+  "width": 30,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "device",
+  "label": "Device",
+  "group": "Source",
+  "kind": "text",
+  "width": 10,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "utmSource",
+  "label": "UTM source",
+  "group": "Source",
+  "kind": "text",
+  "width": 13,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "utmMedium",
+  "label": "UTM medium",
+  "group": "Source",
+  "kind": "text",
+  "width": 13,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "utmCampaign",
+  "label": "UTM campaign",
+  "group": "Source",
+  "kind": "text",
+  "width": 15,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "referrer",
+  "label": "Referrer",
+  "group": "Source",
+  "kind": "text",
+  "width": 26,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "sessionId",
+  "label": "Session",
+  "group": "Source",
+  "kind": "muted",
+  "width": 14,
+  "format": "@",
+  "align": "left"
+ },
+ {
+  "key": "followUp",
+  "label": "Follow-up",
+  "group": "Team",
+  "kind": "dropdown",
+  "width": 15,
+  "owner": "team",
+  "format": "@",
+  "align": "center"
+ },
+ {
+  "key": "notes",
+  "label": "Notes",
+  "group": "Team",
+  "kind": "text",
+  "width": 34,
+  "owner": "team",
+  "format": "@",
+  "align": "left"
+ }
+]
