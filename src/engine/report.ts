@@ -1,4 +1,5 @@
 // Report helpers (moves, step plans, premiums, verdict), ported from KYFR Report mode.
+import { coverPlan } from './cover'
 import { SEVERITY, whatIfFri } from './crisp'
 import { ST } from '../state'
 
@@ -38,7 +39,7 @@ export function krBar(current, target, curLabel, targetLabel, color){
   const scale = Math.max(current, target, 0.0001) * 1.15;
   const fillPct = Math.max(3, Math.min(100, current/scale*100));
   const targetPct = Math.min(97, target/scale*100);
-  return `<div class="kr-bar-wrap"><div class="kr-bar-labels"><span><b>${curLabel}</b></span><span>target ${targetLabel}</span></div><div class="kr-bar-track"><div class="kr-bar-fill" style="width:${fillPct}%;background:${color}"></div><div class="kr-bar-target" style="left:${targetPct}%"></div></div></div>`;
+  return `<div class="kr-bar-wrap"><div class="kr-bar-labels"><span><b>${curLabel}</b></span>${targetLabel?`<span>target ${targetLabel}</span>`:''}</div><div class="kr-bar-track"><div class="kr-bar-fill" style="width:${fillPct}%;background:${color}"></div><div class="kr-bar-target" style="left:${targetPct}%"></div></div></div>`;
 }
 export function krSteps(plan, target, unit?){
   if(!plan || !plan.steps) return '';
@@ -46,16 +47,7 @@ export function krSteps(plan, target, unit?){
   const mid = Math.sqrt(plan.seed * target);
   const vals = [plan.seed, mid, target];
   const bars = vals.map((v,i)=>`<div class="kr-step-bar${i===2?' last':''}" style="height:${Math.max(20, Math.round(v/target*100))}%"><span class="kr-step-lbl">${krRs(v)}${unit}</span></div>`).join('');
-  return `<div class="kr-steps">${bars}</div><div class="kr-steps-cap">Small → medium → full, over about ${plan.years} years, stepping up ${plan.stepPct}% every 6 months.</div>`;
-}
-export function termPremiumMonthly(age, coverCr){
-  const perCr = age<=25?550: age<=30?700: age<=35?950: age<=40?1400: age<=45?2100: age<=50?3200: 4800;
-  return Math.max(300, Math.round(perCr * coverCr / 50) * 50);
-}
-export function healthPremiumAnnual(age, coverLakh, deps){
-  const basePer5 = age<=30?6500: age<=40?9000: age<=50?14000: 21000;
-  const fam = deps > 0 ? 1.5 : 1;
-  return krRound(basePer5 * Math.sqrt(Math.max(1, coverLakh/5)) * fam, 500);
+  return `<div class="kr-steps">${bars}</div><div class="kr-steps-cap">Start small and raise it ${plan.stepPct}% every 6 months. You'll reach the full amount in about ${plan.years} years.</div>`;
 }
 export function krSimExtra(principal, annualRate, emi, cap?){
   cap = cap || 600; const r = annualRate/12;
@@ -66,32 +58,36 @@ export function krSimExtra(principal, annualRate, emi, cap?){
 }
 
 export function krPositive(inp, pillars){
-  const {liq, foi, crd, util, cvr, hlt, inv, age, corpus, inc} = inp;
-  if(age >= 52 && corpus >= 25) return {head:"You've crossed the finish line.", payoff:`Your corpus is past <b>25×</b> your annual spending — work is now a choice, not a necessity. Very few people ever get here.`};
-  if(pillars.life_score >= 85 && pillars.health_score >= 85 && (cvr>0 || hlt>0)) return {head:"Your family is fully protected.", payoff:`Both your life and health cover meet the mark for your income and dependents — the hardest box is already ticked.`};
-  if(liq >= 6) return {head:`You've got ${Math.floor(liq)} months of breathing room.`, payoff:`You could lose your income tomorrow and stay standing for <b>${Math.floor(liq)} months</b> — that's freedom, not just savings.`};
+  const {liq, foi, crd, util, lifeCover, healthCover, inv, age, corpus, inc} = inp;
+  if(age >= 52 && corpus >= 25) return {head:"You've crossed the finish line.", payoff:`Your savings are past <b>25 years</b> of your spending. Work is now a choice, not a necessity. Very few people ever get here.`};
+  if(pillars.life_score >= 85 && pillars.health_score >= 85 && (lifeCover>0 || healthCover>0)) return {head:"Your family is well protected.", payoff:`Your life and health cover are both at the level we'd suggest for you. The hardest box is already ticked.`};
+  if(liq >= 6) return {head:`You've got ${Math.floor(liq)} months of breathing room.`, payoff:`That's counted against what you spend each month. A lost job or a surprise bill won't force your hand.`};
   if(age < 48 && inv >= 18){
     const monthly = inv/100*inc, yrs = Math.max(1, 60-age);
     const fv = monthly*12*((Math.pow(1.11, yrs)-1)/0.11);
-    return {head:`You're investing ${inv}% of your income.`, payoff:`At or near the 20% mark most people never hit. Keep this pace and you're looking at roughly <b>${krRs(fv)}</b> by 60.`};
+    return {head:`You're investing ${inv}% of your income.`, payoff:`That's a pace most people never reach. Keep it up and you could have roughly <b>${krRs(fv)}</b> by the time you retire.`};
   }
-  if(crd >= 760 && foi < 30 && util < 30) return {head:"You'll always get the cheapest money in the room.", payoff:`Top-tier score, light EMI load, low card usage — the full trifecta. Every loan you take is at the best rate on offer.`};
-  if(foi < 22 && (foi > 0)) return {head:"Your debt is barely a rounding error.", payoff:`EMIs take under 22% of your take-home — well inside the safe zone, with room to borrow for what actually matters.`};
+  if(crd >= 760 && foi < 30 && util < 30) return {head:"You'll always get the cheapest money in the room.", payoff:`A top score, light EMIs and low card use. Every loan you take will be at the best rate on offer.`};
+  if(foi < 22 && (foi > 0)) return {head:"Your debt is under control.", payoff:`EMIs take under 22% of your income. That's well inside the safe zone, with room to borrow for what matters.`};
   const KEYS = ['savings','credit','investment','protection'];
   const best = KEYS.map(k=>[k,pillars[k]]).sort((a,b)=>b[1]-a[1])[0];
   if(best && best[1] >= 0.62){
-    const names = {savings:'emergency buffer', credit:'debt health', investment:'investing habit', protection:'family cover'};
-    return {head:`Your ${names[best[0]]} is your foundation.`, payoff:`It's the steadiest part of your picture right now — we'll build everything else on top of it.`};
+    const names = {savings:'emergency savings', credit:'debt health', investment:'investing habit', protection:'family cover'};
+    return {head:`Your ${names[best[0]]} is your foundation.`, payoff:`It's the steadiest part of your picture right now. We'll build everything else on top of it.`};
   }
-  return {head:"You're already ahead of most people.", payoff:`Most people never run these numbers. You just did — now let's point them in the right direction.`};
+  return {head:"You're already ahead of most people.", payoff:`Most people never run these numbers. You just did. Now let's point them in the right direction.`};
 }
 
+// Each move has a face (title, one action, one picture) and a "why" that stays folded until asked for.
+// Nothing in `why` or `wait` repeats a number already on the face.
 export function krCandidates(inp, pillars, weights, fri){
-  const {liq, foi, crd, util, cvr, hlt, inv, age, corpus, inc, spend, deps} = inp;
+  const {liq, foi, crd, util, inv, age, corpus, inc, spend, deps} = inp;
   const out = [];
   const sev = k => { const [lbl] = SEVERITY(pillars[k]); return {lbl, cls:KR_SEVCLASS[lbl], crit: lbl==='CRITICAL', score: pillars[k]}; };
   const delta = k => Math.max(0, whatIfFri(pillars, weights, k) - fri);
   const cascadeIdx = {savings:0, credit:1, protection:2, investment:3};
+  const para = (...ps) => ps.filter(Boolean).map(t=>`<p>${t}</p>`).join('');
+  const note = html => `<div class="kr-daily">${html}</div>`;
 
   if(liq < 5.5){
     const s = sev('savings');
@@ -101,53 +97,60 @@ export function krCandidates(inp, pillars, weights, fri){
     const plan = krStepPlan(inc*0.03, monthly, 0.20);
     const seed = plan.seed || monthly;
     out.push({ key:'savings', ...s, delta:delta('savings'), effort:'MED', cascade:cascadeIdx.savings,
-      icon:'🛟', title:'Build your safety cushion',
+      title:'Build your safety cushion',
+      action:`Automatically move ${krRs(seed)} a month into a savings fund you can withdraw from any day`,
       visualHtml: plan.steps > 0 ? krSteps(plan, monthly) : krBar(liq, 6, `${Math.floor(liq)} months of spending saved`, '6 months', 'var(--k-accent)'),
-      microWhy:`One job loss or bill, and you'd be borrowing at 24–36% just to get by.`,
-      costNum:krRs(emergencyCost), costCap:`in emergency-loan interest, the first time you're caught short`,
-      trigger:'THIS WEEK', mins:'1 min', action:`Set up a ${krRs(seed)}/month auto-transfer to a liquid fund` });
+      whyLabel:'Why this matters',
+      why: para(`This is the money you'd live on if your income stopped or a big bill landed. Without it, most people borrow, often at 24–36% interest.`),
+      wait:`The first time you're caught short could cost about ${krRs(emergencyCost)} in loan interest.`,
+      trigger:'THIS WEEK', mins:'1 min' });
   }
   (function(){
     const s = sev('credit'), d = delta('credit');
-    const emi = inc*foi/100;
-    // The rupee cost of 3 months' EMI is a number the user already gave us —
-    // the non-obvious part is what it does to the safety cushion they just saw.
+    const emi = ST.emi;
     const emi3 = emi*3;
-    const curRunway = Math.floor(liq);
-    const runwayAfterHit = spend>0 ? Math.floor(Math.max(0, ST.savings-emi3)/spend) : 0;
-    const runwayCost = (ST.savings > 0)
-      ? { num:`${curRunway}→${runwayAfterHit} mo`, cap:`is what happens to your safety-net runway if 3 months of EMIs came straight out of it` }
-      : { num:krRs(emi3), cap:`you don't have savings to absorb this — it would have to come from new borrowing` };
+    const monthsNow = Math.floor(liq);
+    const monthsAfter = spend>0 ? Math.floor(Math.max(0, ST.savings-emi3)/spend) : 0;
+    const hit = (ST.savings > 0)
+      ? `Paying 3 months of EMIs from your savings would shrink the months of spending they cover from ${monthsNow} to ${monthsAfter}.`
+      : `You have no savings to fall back on, so 3 months of EMIs (${krRs(emi3)}) would have to come from new borrowing.`;
     if(foi > 50){
-      out.push({ key:'credit', ...s, delta:d, effort:'HIGH', cascade:cascadeIdx.credit, icon:'⚠️', title:'Ease your debt load',
-        visualHtml: krBar(foi, 30, `${foi}% of income to EMIs`, '30% (safe zone)', 'var(--k-harm)'),
-        microWhy:`Above the safe line — one missed month cascades fast.`,
-        costNum:runwayCost.num, costCap:runwayCost.cap,
-        trigger:'TODAY', mins:'5 min', action:`List your loans by rate — send every spare rupee to the highest one first` });
+      out.push({ key:'credit', ...s, delta:d, effort:'HIGH', cascade:cascadeIdx.credit, title:'Ease your debt load', factor:'emi',
+        action:`List your loans by interest rate, then put every spare rupee towards the most expensive one first`,
+        visualHtml: krBar(foi, 30, `${foi}% of income goes to EMIs`, '30% (a safe level)', 'var(--k-harm)'),
+        whyLabel:'Why this matters',
+        why: para(`When this much of your income is already spoken for, one surprise bill or missed payment can snowball quickly.`),
+        wait: hit, trigger:'TODAY', mins:'5 min' });
     } else if(util > 60){
-      out.push({ key:'credit', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.credit, icon:'💳', title:'Free up your credit',
-        visualHtml: krBar(util, 30, `${util}% of card limit used`, 'under 30%', 'var(--k-tradeoff)'),
-        microWhy:`Lenders read high usage as stress, even when you pay in full.`,
-        costNum:'+1–2%', costCap:`higher rate on every future loan — lakhs over a home-loan lifetime`,
-        trigger:'BEFORE YOUR NEXT STATEMENT', mins:'2 min', action:`Pay your card down until usage is under 30%` });
+      out.push({ key:'credit', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.credit, title:'Bring down your card bill', factor:'card',
+        action:`Pay your card bill down until you're using less than 30% of your limit`,
+        visualHtml: krBar(util, 30, `${util}% of your card limit used`, 'under 30%', 'var(--k-tradeoff)'),
+        whyLabel:'Why this matters',
+        why: para(`Lenders read a high card balance as a sign you're stretched, even if you always pay on time.`),
+        wait:`A lower credit score can add 1–2% to the interest on every future loan. On a home loan that's lakhs.`,
+        trigger:'BEFORE YOUR NEXT BILL', mins:'2 min' });
     } else if(crd < 650){
-      out.push({ key:'credit', ...s, delta:d, effort:'HIGH', cascade:cascadeIdx.credit, icon:'📈', title:'Lift your credit score',
-        visualHtml: krBar(crd, 650, `${crd} credit score`, '650+ credit score', 'var(--k-accent)'),
-        microWhy:`No shortcuts, no products — just on-time payments for 6 months.`,
-        costNum:krRs(inc*12*5*0.015), costCap:`extra on a future home loan from a score lower than it could be`,
-        trigger:'TODAY', mins:'2 min', action:`Turn on auto-pay for every card and loan` });
+      out.push({ key:'credit', ...s, delta:d, effort:'HIGH', cascade:cascadeIdx.credit, title:'Lift your credit score', factor:'score',
+        action:`Turn on auto-pay for every card and loan`,
+        visualHtml: krBar(crd, 650, `Credit score ${crd}`, '650 or more', 'var(--k-accent)'),
+        whyLabel:'Why this matters',
+        why: para(`Paying on time, every time, is what lifts a score. There's no shortcut, and most people see it improve within 6 months.`),
+        wait:`A weak score could cost about ${krRs(inc*12*5*0.015)} extra in interest on a future home loan.`,
+        trigger:'TODAY', mins:'2 min' });
     } else if(foi > 35){
-      out.push({ key:'credit', ...s, delta:d, effort:'MED', cascade:cascadeIdx.credit, icon:'⚖️', title:'Bring your EMIs down',
-        visualHtml: krBar(foi, 30, `${foi}% of income to EMIs`, '30% (safe zone)', 'var(--k-tradeoff)'),
-        microWhy:`A bit above the healthy zone — manageable, but little room for a surprise.`,
-        costNum:runwayCost.num, costCap:runwayCost.cap,
-        trigger:'ON YOUR NEXT BONUS', mins:'5 min', action:`Part-prepay your priciest loan — most let you do it for free` });
+      out.push({ key:'credit', ...s, delta:d, effort:'MED', cascade:cascadeIdx.credit, title:'Bring your EMIs down', factor:'emi',
+        action:`Pay a chunk of your most expensive loan early. Most lenders allow this for free`,
+        visualHtml: krBar(foi, 30, `${foi}% of income goes to EMIs`, '30% (a safe level)', 'var(--k-tradeoff)'),
+        whyLabel:'Why this matters',
+        why: para(`A little above the comfortable level. It's manageable, but leaves little room for a surprise.`),
+        wait: hit, trigger:'ON YOUR NEXT BONUS', mins:'5 min' });
     } else if(util > 30){
-      out.push({ key:'credit', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.credit, icon:'💳', title:'Trim your card usage',
-        visualHtml: krBar(util, 30, `${util}% of card limit used`, 'under 30%', 'var(--k-accent)'),
-        microWhy:`The cheapest score improvement there is — no cost, just timing.`,
-        costNum:'A lower score', costCap:`than you could have — for a completely free fix`,
-        trigger:'BEFORE YOUR NEXT STATEMENT', mins:'1 min', action:`Pay part of your card bill a few days early` });
+      out.push({ key:'credit', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.credit, title:'Use less of your card limit', factor:'card',
+        action:`Pay part of your card bill a few days before the statement date`,
+        visualHtml: krBar(util, 30, `${util}% of your card limit used`, 'under 30%', 'var(--k-accent)'),
+        whyLabel:'Why this matters',
+        why: para(`Your score looks at how much of your limit is in use when the bill is made. Paying early lowers that, and it costs nothing.`),
+        wait:'', trigger:'BEFORE YOUR NEXT BILL', mins:'1 min' });
     } else if(foi >= 10 && pillars.savings >= 0.33){
       const rate = 0.13, n = 48, principal = emi>0 ? emi*(1-Math.pow(1+rate/12,-n))/(rate/12) : 0;
       const base = emi*n - principal;
@@ -155,40 +158,58 @@ export function krCandidates(inp, pillars, weights, fri){
       const saved = ex.months ? Math.max(0, base - ex.interest) : 0;
       const monthsEarly = ex.months ? Math.max(0, n - ex.months) : 0;
       if(saved > 1000 && monthsEarly > 0){
-        out.push({ key:'credit', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.credit, icon:'🏁', title:'Get ahead on your loan',
-          visualHtml: `<div style="display:flex;gap:10px;margin-bottom:10px"><div style="flex:1;background:var(--k-raised);border-radius:10px;padding:10px 12px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--k-accent)">${monthsEarly} mo</div><div style="font-size:10.5px;color:var(--k-muted)">earlier payoff</div></div><div style="flex:1;background:var(--k-raised);border-radius:10px;padding:10px 12px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--k-safe)">${krRs(saved)}</div><div style="font-size:10.5px;color:var(--k-muted)">interest saved</div></div></div>`,
-          microWhy:`Money paid early kills more interest than the same money paid later.`,
-          costNum:krRs(saved), costCap:`in interest you'd otherwise hand the lender for nothing`,
-          trigger:'RIGHT NOW', mins:'2 min', action:`Set a yearly reminder to pay one extra EMI (about ${krRs(emi)})` });
+        const box = (big, small) => `<div class="kr-stat"><div class="kr-stat-n">${big}</div><div class="kr-stat-l">${small}</div></div>`;
+        out.push({ key:'credit', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.credit, title:'Get ahead on your loan', factor:'emi',
+          action:`Pay one extra EMI a year (about ${krRs(emi)})`,
+          visualHtml: `<div class="kr-stats">${box(`${monthsEarly} mo`, 'sooner you finish')}${box(krRs(saved), 'interest saved')}</div>`,
+          whyLabel:'Why pay an extra EMI?',
+          why: para(
+            `Interest is charged on the amount you still owe. An extra EMI goes straight off that amount, so every month after it has less interest to pay.`,
+            `Once a year is enough, for example with a bonus or a tax refund.`,
+            `Check that your lender doesn't charge a fee for paying early, and do this only once your emergency savings are in place.`),
+          wait:'', trigger:'WHEN YOU NEXT GET A BONUS', mins:'2 min' });
       }
     }
   })();
   {
-    const needHealth = pillars.health_score < 78;
-    const needLife   = deps > 0 && pillars.life_score < 78;
+    const plan = coverPlan({age, deps, income:inc, spending:spend, savings:ST.savings, emi:ST.emi, retirement:ST.retirementCorpus, lifeCover:ST.lifeCover, healthCover:ST.healthCover});
+    const needHealth = pillars.health_score < 78 && plan.health.kind !== 'none';
+    const needLife   = deps > 0 && pillars.life_score < 78 && !plan.life.covered;
     const doLife = needLife && (pillars.life_score <= pillars.health_score || !needHealth);
+    const perDay = yearly => Math.max(1, Math.round(yearly/365));
     if(doLife){
       const s = sev('protection'), d = delta('protection');
-      const targetCr = +(inc*12*10/1e7).toFixed(2);
-      const prem = termPremiumMonthly(age, targetCr);
-      const gapRs = Math.max(0, (10-cvr))*inc*12;
-      const dailyLife = Math.max(1, Math.round(prem/30));
-      out.push({ key:'protection', ...s, delta:d, effort:'MED', cascade:cascadeIdx.protection, icon:'🛡️', title:"Protect your family's income",
-        visualHtml: krBar(cvr, 10, `${cvr}× your yearly income covered`, '10× your income', 'var(--k-accent)') + `<div class="kr-daily"><span class="kr-daily-icon">🪙</span><span>About <b>₹${dailyLife}/day</b> — less than a cup of chai — covers the ${krRs(prem)}/month premium.</span></div>`,
-        microWhy:`${deps} ${deps===1?'person depends':'people depend'} on your income — a simple term plan closes this cheaply.`,
-        costNum:krRs(gapRs), costCap:`your family would have to replace on their own`,
-        trigger:'IN THE NEXT 10 MINUTES', mins:'10 min', action:`Get one online term-insurance quote for ${krCover(targetCr)} cover` });
+      const L = plan.life;
+      const people = deps===1 ? '1 person relies' : `${deps} people rely`;
+      out.push({ key:'protection', ...s, delta:d, effort:'MED', cascade:cascadeIdx.protection, title:"Protect your family's income",
+        action:`Get a quote for ${krRs(L.need)} of life insurance`,
+        // The amount is already in the action above, so the bar shows progress without repeating it.
+        visualHtml: krBar(L.own, L.need, `${krRs(L.own)} covered`, '', 'var(--k-accent)')
+          + note(`Set aside about <b>₹${perDay(L.yearlyCost)} a day</b> and the yearly cost (${krRs(L.yearlyCost)}) is ready when it's due.`),
+        whyLabel:'Why this matters',
+        why: para(
+          `${people} on your income. If you weren't around, this pays your family a lump sum so they can keep the home and plans going.`,
+          `We sized it from your spending, plus things we assumed because we didn't ask: ${deps===1 ? "a spouse who isn't earning" : "a spouse who isn't earning and young children"}. Treat it as a starting point; a quote will confirm what you can get.`),
+        wait: L.own > 0 ? `Until the gap is closed, your family would have to manage without about ${krRs(L.need - L.own)}.` : '',
+        trigger:'IN THE NEXT 10 MINUTES', mins:'10 min' });
     } else if(needHealth){
       const s = sev('protection'), d = delta('protection');
-      const target = pillars.hc_target;
-      const prem = healthPremiumAnnual(age, target, deps);
-      const gapRs = Math.max(0, target-hlt)*1e5;
-      const dailyHealth = Math.max(1, Math.round(prem/365));
-      out.push({ key:'protection', ...s, delta:d, effort:'MED', cascade:cascadeIdx.protection, icon:'⚕️', title:'Guard against a big medical bill',
-        visualHtml: krBar(hlt, target, `${fmtHlt(hlt)} covered`, fmtHlt(target), 'var(--k-accent)') + `<div class="kr-daily"><span class="kr-daily-icon">🪙</span><span>Save about <b>₹${dailyHealth}/day</b> from today — by renewal, the full ${krRs(prem)} premium is already set aside, not a surprise bill.</span></div>`,
-        microWhy:`${fmtHlt(target)} is a realistic cost for a serious hospital stay — you're ${fmtHlt(Math.max(0,target-hlt))} short.`,
-        costNum:krRs(gapRs), costCap:`paid straight from savings in one bad hospital stay`,
-        trigger:'TODAY', mins:'5 min', action:`Get a super top-up quote — it stacks on what you already have` });
+      const H = plan.health;
+      const first = H.kind === 'plan';
+      out.push({ key:'protection', ...s, delta:d, effort:'MED', cascade:cascadeIdx.protection, title:'Guard against a big hospital bill',
+        action: first
+          ? (H.own > 0 ? `Raise your health cover to at least ${krRs(H.buy)}` : `Get a ${krRs(H.buy)} health insurance plan for your family`)
+          : `Add a ${krRs(H.buy)} top-up health plan on top of the one you have`,
+        visualHtml: krBar(H.own, H.own + H.buy, `${krRs(H.own)} covered`, krRs(H.own + H.buy), 'var(--k-accent)')
+          + note(`Set aside about <b>₹${perDay(H.yearlyCost)} a day</b> and the yearly cost (${krRs(H.yearlyCost)}) is ready by renewal.`),
+        whyLabel:'Why this matters',
+        why: para(
+          first
+            ? `A serious illness can cost lakhs. A health plan pays the hospital directly, so the bill doesn't come out of your savings.`
+            : `Your current plan pays first. A top-up is a second, cheaper plan that only starts paying once your bills pass what the first one covers, so together they handle the big ones.`,
+          `We assumed you live in a big city, use good private hospitals, and have your family (if you have one) on a single plan.`),
+        wait:'A serious hospital stay without enough cover usually comes out of savings, and those bills often run into lakhs.',
+        trigger:'TODAY', mins:'5 min' });
     }
   }
   if(age < 48 && inv < 19){
@@ -198,32 +219,31 @@ export function krCandidates(inp, pillars, weights, fri){
     const yrs10 = Math.min(10, yrsToRetire);
     const plan = krStepPlan(inc*0.02, addRs, 0.20);
     const seed = plan.seed || addRs;
-    // Simulated against the ACTUAL ramp (start at seed, +20% every 6 months,
-    // cap at addRs) — not an idealised "full amount from month 1" shortcut,
-    // so the number quoted is exactly what following the recommended plan
-    // below is projected to build, not a bigger, unearned one.
+    // Simulated against the ACTUAL ramp (start at seed, +20% every 6 months, cap at addRs),
+    // so the number quoted is what following the recommended plan is projected to build.
     const shortfall10 = krRampFV(seed, addRs, 0.20, Math.round(yrs10*12), 0.11);
     const shortfallRetire = krRampFV(seed, addRs, 0.20, Math.round(yrsToRetire*12), 0.11);
-    // A 25-year-old can't feel "by 60" — 35 years out is abstract. Ten years
-    // is something they can actually picture, so it leads; retirement is the
-    // second, longer payoff that explains why compounding is worth starting now.
-    const costNum = yrs10>=yrsToRetire ? krRs(shortfallRetire) : krRs(shortfall10);
-    const costCap = yrs10>=yrsToRetire
-      ? `less by retirement if you leave this where it is`
-      : `less in just ${yrs10} years — growing to ${krRs(shortfallRetire)} by retirement if this stays as is`;
-    out.push({ key:'investment', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.investment, icon:'🌱', title:'Invest a little more',
+    const wait = yrs10>=yrsToRetire
+      ? `Leaving things as they are would leave you about ${krRs(shortfallRetire)} short by retirement.`
+      : `Leaving things as they are would leave you about ${krRs(shortfall10)} short in ${yrs10} years, and about ${krRs(shortfallRetire)} short by retirement.`;
+    out.push({ key:'investment', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.investment, title:'Invest a little more',
+      action:`Start investing ${krRs(seed)} every month with an automatic plan (a SIP) in your investing app`,
       visualHtml: plan.steps > 0 ? krSteps(plan, addRs) : krBar(inv, 20, `${inv}% of income invested`, '20% of income', 'var(--k-accent)'),
-      microWhy:`20% of income quietly funds a real retirement — compounding now is the part you can't buy back later.`,
-      costNum, costCap,
-      trigger:'RIGHT NOW', mins:'2 min', action:`Start a ${krRs(seed)}/month SIP in your investing app` });
+      whyLabel:'Why this matters',
+      why: para(
+        `Putting aside about a fifth of what you earn is what builds a comfortable retirement. Starting early matters more than starting big, because your money grows on its own growth.`,
+        `A SIP simply moves a fixed amount into a mutual fund automatically every month.`),
+      wait, trigger:'RIGHT NOW', mins:'2 min' });
   } else if(age >= 52 && corpus < 25 && corpus > 0){
     const s = sev('investment'), d = delta('investment');
     const recoverYrs = Math.max(1, Math.round(Math.log(1/(1-0.25)) / Math.log(1.07)));
-    out.push({ key:'investment', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.investment, icon:'🎯', title:'Stay on track for retirement',
-      visualHtml: krBar(corpus, 25, `${corpus}× yearly spending saved`, '25× (retirement-ready)', 'var(--k-accent)'),
-      microWhy:`25 times your yearly spending saved up is the standard "retirement-ready" mark — you're almost there. A big loss now is hard to recover from this close.`,
-      costNum:`~${recoverYrs} years`, costCap:`to recover from a bad drawdown this close to the finish line, instead of steadily compounding your way there`,
-      trigger:'THIS WEEK', mins:'5 min', action:`Review your allocation once — make sure you're not overexposed` });
+    out.push({ key:'investment', ...s, delta:d, effort:'LOW', cascade:cascadeIdx.investment, title:'Stay on track for retirement',
+      action:`Check once that your money isn't too exposed to a big market fall`,
+      visualHtml: krBar(corpus, 25, `${corpus} years of spending saved`, '25 years', 'var(--k-accent)'),
+      whyLabel:'Why this matters',
+      why: para(`About 25 years of spending saved is the usual mark for being retirement-ready, and you're close. A big fall this near the finish line is hard to recover from.`),
+      wait:`Recovering could take about ${recoverYrs} years, instead of steady growth.`,
+      trigger:'THIS WEEK', mins:'5 min' });
   }
   return out;
 }
@@ -242,8 +262,8 @@ export function krPrioritise(cands){
   return picks.slice(0,3);
 }
 export function krVerdict(moves, hasCritical){
-  if(hasCritical) return "There's real strain here — but it's fixable, and there's an order to it. Start with one thing, today.";
-  if(moves.length === 0) return "You're in rare shape — every pillar is pulling its weight. The job now is simply to protect it.";
+  if(hasCritical) return "There's real strain here, but it's fixable, and there's an order to it. Start with one thing, today.";
+  if(moves.length === 0) return "You're in rare shape. Every area is pulling its weight. The job now is simply to protect it.";
   if(moves.length === 1) return "You're most of the way there. One move takes you from solid to genuinely resilient.";
-  return "You've built a real foundation. A couple of focused moves and you're resilient — here's the order.";
+  return "You've built a real foundation. A couple of focused moves and you're resilient. Here's the order.";
 }

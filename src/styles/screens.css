@@ -44,3 +44,8 @@ h1.q-title{font-family:var(--k-display);font-weight:600;font-size:clamp(24px,5.5
 .toggle::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .25s var(--ease);box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .toggle.on{background:var(--k-accent)}
 .toggle.on::after{transform:translateX(18px)}
+
+.card-readout{min-height:20px;margin-top:2px;font-size:13px;font-weight:600;color:var(--k-ink-soft);line-height:1.45}
+.card-readout[data-level="ok"]{color:var(--k-safe)}
+.card-readout[data-level="high"],.card-readout[data-level="needLimit"],.card-readout[data-level="over"]{color:var(--k-tradeoff)}
+.card-readout[data-level="veryHigh"]{color:var(--k-harm)}

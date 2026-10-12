@@ -137,6 +137,24 @@ function doPost(e) {
   }
 }
 
+// Run from the editor to see which spreadsheet this script is attached to and how long a write takes.
+// The answer appears in the Execution log at the bottom of the editor.
+function diagnose() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) { Logger.log('This script is NOT attached to a spreadsheet. Open your sheet, then Extensions > Apps Script.'); return; }
+  Logger.log('Spreadsheet: ' + ss.getName() + '\n' + ss.getUrl());
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) { Logger.log('No tab called "' + SHEET_NAME + '". Tabs found: ' + ss.getSheets().map(function (s) { return s.getName(); }).join(', ')); return; }
+  let t = Date.now();
+  Logger.log('Rows holding data on "' + SHEET_NAME + '": ' + sheet.getLastRow() + '  (' + (Date.now() - t) + ' ms)');
+  t = Date.now();
+  const probe = sheet.getRange(1, COLUMNS.length + 3);
+  probe.setValue('probe');
+  SpreadsheetApp.flush();
+  Logger.log('One write, fully applied: ' + (Date.now() - t) + ' ms  (anything over about 3000 means the sheet itself is slow)');
+  probe.clearContent();
+}
+
 function validate_(lead) {
   if (!lead || typeof lead !== 'object') return 'bad payload';
   if (!/^\+91[6-9]\d{9}$/.test(String(lead.phone || ''))) return 'bad phone';

@@ -20,7 +20,12 @@ export async function postLead(url: string | undefined, lead: Lead, fetchImpl: F
       const res = await fetchImpl(url, { ...init, signal: timer.signal })
       if (!res.ok) throw new HttpError('HTTP ' + res.status)
       const body = await res.json().catch(() => null)
-      if (body && body.ok === false) throw new Rejected(body.error || 'rejected')
+      if (body && body.ok === false) {
+        // The script said no to the lead itself (bad phone or email): resending cannot help.
+        // Anything else ('server': tab missing, lock timeout, quota) is worth another try later.
+        if (/^bad /.test(body.error || '')) throw new Rejected(body.error)
+        throw new HttpError(body.error || 'server')
+      }
       return 'sent'
     } catch (e) {
       if (e instanceof Rejected || e instanceof HttpError || (e as Error).name === 'AbortError') throw e

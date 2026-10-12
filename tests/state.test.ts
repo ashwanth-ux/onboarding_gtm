@@ -12,8 +12,8 @@ describe('deriveInp', () => {
     expect(d.liq).toBe(6)
     expect(d.inv).toBe(20)
     expect(d.util).toBe(30)
-    expect(d.cvr).toBe(5)
-    expect(d.hlt).toBe(5)
+    expect(d.lifeCover).toBe(6000000)
+    expect(d.healthCover).toBe(500000)
   })
 
   it('measures runway against spending, never income', () => {
@@ -26,7 +26,7 @@ describe('deriveInp', () => {
   it('gives zero for every ratio when the denominator is missing', () => {
     Object.assign(ST, { income: 0, spending: 0, savings: 500000, emi: 10000, sip: 5000, lifeCover: 1e7 })
     const d = deriveInp()
-    expect([d.foi, d.liq, d.inv, d.cvr, d.corpus]).toEqual([0, 0, 0, 0, 0])
+    expect([d.foi, d.liq, d.inv, d.corpus, d.lifeNeed]).toEqual([0, 0, 0, 0, 0])
   })
 
   it('treats "no card balance" and a zero limit as zero utilisation', () => {
@@ -55,7 +55,20 @@ describe('deriveInp', () => {
     expect(d.foi).toBe(100)
     expect(d.liq).toBe(60)
     expect(d.inv).toBe(60)
-    expect(d.cvr).toBe(50)
     expect(d.util).toBe(100)
+    // the cover we would suggest stays sensible whatever is typed
+    expect(d.lifeNeed).toBeLessThanOrEqual(1000 * 12 * 15)
+    expect(d.healthNeed).toBeLessThanOrEqual(5_000_000)
+  })
+
+  it('works out the cover to suggest from age, dependants, income, spending, savings and loans', () => {
+    Object.assign(ST, { age: 30, deps: 0, income: 80000, spending: 50000 })
+    const alone = deriveInp()
+    expect(alone.lifeNeed).toBe(0)
+    expect(alone.healthNeed).toBeGreaterThanOrEqual(1_000_000)
+    Object.assign(ST, { deps: 2 })
+    const family = deriveInp()
+    expect(family.lifeNeed).toBeGreaterThan(0)
+    expect(family.healthNeed).toBeGreaterThanOrEqual(alone.healthNeed)
   })
 })

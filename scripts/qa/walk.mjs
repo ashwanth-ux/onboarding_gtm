@@ -1,5 +1,6 @@
 // Shared by the QA scripts: personas, and a helper that taps through the real UI like a person.
 export const PERSONAS = {
+  stretched: { age: 28, deps: 2, in: { 'in-income': '50000', 'in-spending': '40000', 'in-savings': '30000', 'in-sip': '0', 'in-emi': '15000', 'in-score': '650', 'in-balance': '40000', 'in-limit': '50000', 'in-life': '0', 'in-health': '500000' } },
   starter: { age: 24, deps: 0, in: { 'in-income': '30000', 'in-spending': '22000', 'in-savings': '15000', 'in-sip': '0', 'in-emi': '0', 'in-life': '0', 'in-health': '0' }, noBalance: true, skipScore: true },
   family: { age: 35, deps: 2, in: { 'in-income': '120000', 'in-spending': '70000', 'in-savings': '400000', 'in-sip': '15000', 'in-emi': '35000', 'in-score': '690', 'in-balance': '60000', 'in-limit': '150000', 'in-life': '5000000', 'in-health': '500000' } },
   senior: { age: 52, deps: 1, in: { 'in-income': '250000', 'in-spending': '100000', 'in-savings': '6000000', 'in-sip': '80000', 'in-corpus': '20000000', 'in-emi': '0', 'in-score': '800', 'in-balance': '10000', 'in-limit': '800000', 'in-life': '30000000', 'in-health': '2500000' } },

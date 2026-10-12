@@ -1,10 +1,10 @@
 import { LOGO_SRC } from './assets'
-import { goTo } from './router'
+import { goTo, validateCurrent } from './router'
 import { ST, deriveInp } from './state'
 import { CASCADE, calcFRI, calcPillars, calcWeights, clamp } from './engine/crisp'
 import { fmtIndianInput, parseNum } from './format'
 import { animateCount, fireConfetti, wireCurrency } from './ui/dom'
-import { bufferInsight, creditInsight, incomeInsight, insuranceInsight } from './engine/benchmark'
+import { bufferInsight, cardUsage, creditInsight, incomeInsight, insuranceInsight } from './engine/benchmark'
 import { animateGauge, animateShield, edgeFlourish, renderGauge, renderLadder, renderShield } from './ui/visuals'
 import { krCandidates, krPositive, krPrioritise, krRs, krVerdict } from './engine/report'
 import { buildOverviewRing, buildPillarDetail } from './ui/detail'
@@ -179,22 +179,30 @@ export const SCREENS = {
   'crd-q2': {
     render(){ return `<div class="screen" data-id="crd-q2"><div class="screen-scroll"><div class="v-center">
       <div class="eyebrow"><span class="dot"></span>Section 3 · Credit &amp; Loans</div>
-      <h1 class="q-title">And your credit cards?</h1>
-      <div class="q-sub">Just your revolving balance — the part you're carrying month to month.</div>
-      <div class="toggle-row" id="no-balance-row"><span>I always pay in full / no card</span><div class="toggle" id="no-balance-toggle"></div></div>
-      <div class="q-field"><div class="q-field-label">Current card balance carried</div>
-        <div class="q-input-wrap" id="bal-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-balance" inputmode="numeric" placeholder="0" value="${ST.cardBalance?fmtIndianInput(ST.cardBalance):''}"></div>
+      <h1 class="q-title">How much do you owe on your credit cards right now?</h1>
+      <div class="q-sub">Add up everything that's still unpaid on all your cards. Your card app calls it "total outstanding" or "amount due".</div>
+      <div class="toggle-row" id="no-balance-row"><span>I don't have a credit card</span><div class="toggle" id="no-balance-toggle"></div></div>
+      <div class="q-field"><div class="q-field-label">What you owe on your cards today</div>
+        <div class="q-input-wrap" id="bal-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-balance" inputmode="numeric" placeholder="e.g. 25,000" value="${ST.cardBalance?fmtIndianInput(ST.cardBalance):''}"></div>
+        <span class="q-hint">Include this month's bill, even if you'll pay it on time. Paid everything off? Enter 0.</span>
       </div>
-      <div class="q-field"><div class="q-field-label">Total credit limit across cards</div>
-        <div class="q-input-wrap" id="lim-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-limit" inputmode="numeric" placeholder="0" value="${ST.cardLimit?fmtIndianInput(ST.cardLimit):''}"></div>
+      <div class="q-field"><div class="q-field-label">Your total card limit</div>
+        <div class="q-input-wrap" id="lim-wrap"><span class="q-prefix">₹</span><input class="q-input" id="in-limit" inputmode="numeric" placeholder="e.g. 1,50,000" value="${ST.cardLimit?fmtIndianInput(ST.cardLimit):''}"></div>
+        <span class="q-hint">Add up the limit on each card. It's shown in your card app as "credit limit".</span>
       </div>
+      <div class="card-readout" id="card-readout" aria-live="polite"></div>
     </div></div>
     <div class="btn-row"><button class="btn btn-ghost" onclick="goBack()">Back</button><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue</button></div>
     </div>`; },
     mount(root){
-      wireCurrency('in-balance','cardBalance',{max:10000000}); wireCurrency('in-limit','cardLimit',{max:10000000});
+      const readout = root.querySelector('#card-readout');
+      function say(){
+        const u = ST.noCardBalance ? {level:'none', text:''} : cardUsage(ST.cardBalance, ST.cardLimit);
+        readout.textContent = u.text; readout.dataset.level = u.level;
+      }
+      wireCurrency('in-balance','cardBalance',{max:10000000, onInput:say}); wireCurrency('in-limit','cardLimit',{max:10000000, onInput:say});
       const toggle = root.querySelector('#no-balance-toggle');
-      function sync(){ toggle.classList.toggle('on', ST.noCardBalance); root.querySelector('#bal-wrap').classList.toggle('disabled', ST.noCardBalance); root.querySelector('#lim-wrap').classList.toggle('disabled', ST.noCardBalance); }
+      function sync(){ toggle.classList.toggle('on', ST.noCardBalance); root.querySelector('#bal-wrap').classList.toggle('disabled', ST.noCardBalance); root.querySelector('#lim-wrap').classList.toggle('disabled', ST.noCardBalance); say(); validateCurrent(); }
       root.querySelector('#no-balance-row').onclick = ()=>{ ST.noCardBalance = !ST.noCardBalance; sync(); };
       sync();
     },
@@ -248,8 +256,9 @@ export const SCREENS = {
       // With no dependents, life cover isn't weighed at all (matches the
       // engine's own logic below) — averaging it in anyway would unfairly
       // drag the number down for someone whose health cover is actually fine.
-      const healthPct = inp.hlt/Math.max(1,pillars.hc_target)*100;
-      const pct = inp.deps>0 ? clamp(((inp.cvr/10)*100+healthPct)/2,0,100) : clamp(healthPct,0,100);
+      const healthPct = inp.healthNeed>0 ? inp.healthCover/inp.healthNeed*100 : 100;
+      const lifePct = inp.lifeNeed>0 ? inp.lifeCover/inp.lifeNeed*100 : 100;
+      const pct = inp.deps>0 ? clamp((lifePct+healthPct)/2,0,100) : clamp(healthPct,0,100);
       const glowCls = pct>=90 ? 'glow-good' : pct<15 ? 'glow-empty' : '';
       return `<div class="screen" data-id="ins-r"><div class="screen-scroll"><div class="reveal">
         <div class="reveal-badge">🛡️ Protection check</div>
@@ -263,9 +272,10 @@ export const SCREENS = {
       </div>`;
     },
     mount(){
-      const inp=deriveInp(); const pillars=calcPillars(inp);
-      const healthPct = inp.hlt/Math.max(1,pillars.hc_target)*100;
-      const pct = inp.deps>0 ? clamp(((inp.cvr/10)*100+healthPct)/2,0,100) : clamp(healthPct,0,100);
+      const inp=deriveInp();
+      const healthPct = inp.healthNeed>0 ? inp.healthCover/inp.healthNeed*100 : 100;
+      const lifePct = inp.lifeNeed>0 ? inp.lifeCover/inp.lifeNeed*100 : 100;
+      const pct = inp.deps>0 ? clamp((lifePct+healthPct)/2,0,100) : clamp(healthPct,0,100);
       animateShield(pct); if(pct>=90) setTimeout(()=>fireConfetti(pct>=99),500);
     },
     onContinue(){ goTo('summary'); }
@@ -286,54 +296,74 @@ export const SCREENS = {
 
       let html = `<div class="kr-verdict"><div class="kr-eyebrow">Your KYFR Report</div><h1>${krVerdict(moves,hasCritical)}</h1></div>`;
       html += `<div class="kr-positive"><div class="kr-badge"><span class="dot"></span>What you're already getting right</div><div class="kr-pos-headline">${pos.head}</div><div class="kr-pos-payoff">${pos.payoff}</div></div>`;
-      if(todayMove){
-        html += `<div class="kr-today"><div class="kr-today-eyebrow"><span class="kr-today-icon">${todayMove.icon||'◆'}</span>Start today — just this one thing</div><div class="kr-today-trigger">${todayMove.trigger}</div><div class="kr-today-body">${todayMove.action}.</div><div class="kr-today-chips"><span class="kr-today-chip">⏱ ${todayMove.mins||'a few min'}</span><span class="kr-today-chip">${todayMove.title}</span></div></div>`;
+      // With a single step the box would only repeat the card below it.
+      if(todayMove && moves.length > 1){
+        html += `<div class="kr-today"><div class="kr-today-eyebrow">Start today. Just this one thing</div><div class="kr-today-trigger">${todayMove.trigger}</div><div class="kr-today-body">${todayMove.title}</div><div class="kr-today-chips"><span class="kr-today-chip">${todayMove.mins||'A few min'}</span></div></div>`;
       }
       if(moves.length){
-        html += `<div class="kr-alsolbl">${moves.length===1?'Do this next':'Do these next, in order'}</div>`;
-        html += `<div class="kr-moves">`;
+        const many = moves.length > 1;
+        html += `<div class="kr-movehead"><div class="kr-alsolbl">${many?'Do these next, in order':'Do this next'}</div>${many?`<div class="kr-nav"><span class="kr-count" id="kr-count">1 of ${moves.length}</span><button class="kr-arrow" type="button" id="kr-prev" aria-label="Previous step">&#8249;</button><button class="kr-arrow" type="button" id="kr-next" aria-label="Next step">&#8250;</button></div>`:''}</div>`;
+        html += `<div class="kr-carousel${many?'':' single'}" id="kr-carousel" ${many?'tabindex="0" aria-label="Your next steps. Swipe sideways to see the next one"':''}>`;
         moves.forEach((m,i)=>{
-          html += `<div class="kr-move sev-${m.cls}"><div class="kr-move-head"><span class="kr-move-icon">${m.icon}</span><span class="kr-move-title">${m.title}</span><span class="kr-move-n">${i+1}</span></div><div class="kr-move-body"><div class="kr-move-hero"><span class="arrow">→</span>${m.action}.</div>${m.visualHtml}<div class="kr-move-why-mini"><span class="ic">💡</span><span>${m.microWhy}</span></div><div class="kr-cost-lbl">If you wait</div><div class="kr-cost"><span class="kr-cost-icon">${m.crit?'🔴':'⏳'}</span><span class="kr-cost-num">${m.costNum}</span><span class="kr-cost-cap">${m.costCap}</span></div></div></div>`;
+          const more = m.why ? `<div class="kr-more"><button class="kr-more-btn" type="button" aria-expanded="false" onclick="toggleMore(this)"><span>${m.whyLabel||'Why this matters'}</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button><div class="kr-more-body"><div class="kr-more-in">${m.why}${m.wait?`<p class="kr-wait"><b>If you wait:</b> ${m.wait}</p>`:''}</div></div></div>` : '';
+          html += `<article class="kr-move sev-${m.cls}"><div class="kr-move-head"><span class="kr-move-title">${m.title}</span><span class="kr-move-n">${i+1}</span></div><div class="kr-move-body"><div class="kr-move-hero">${m.action}.</div>${m.visualHtml}${more}</div></article>`;
         });
         html += `</div>`;
+        if(many) html += `<div class="kr-dots" id="kr-dots" aria-hidden="true">${moves.map((_,i)=>`<span class="kr-dot${i===0?' on':''}"></span>`).join('')}</div><div class="kr-swipe">Swipe to see the next step</div>`;
       }
-      html += `<div class="summary-detail-cta" onclick="goTo('detail')"><div class="ic">🔍</div><div class="tx"><b>See the full breakdown</b><span>Every pillar, the numbers behind it, and why we prioritised what we did</span></div><div class="chev">→</div></div>`;
+      html += `<div class="summary-detail-cta" onclick="goTo('detail')"><div class="tx"><b>See the full breakdown</b><span>Where you stand in each area, and why we put these steps first</span></div><div class="chev">&#8594;</div></div>`;
       return `<div class="screen" data-id="summary"><div class="screen-scroll">${html}</div>
         <div class="btn-row" style="flex-direction:column;gap:10px">
           <button class="btn btn-primary" id="btn-continue" onclick="continueClick()">What's next →</button>
-          <button class="summary-footer-link" type="button" onclick="goTo('detail')">🔍 See the full breakdown →</button>
+          <button class="summary-footer-link" type="button" onclick="goTo('detail')">See the full breakdown &#8594;</button>
         </div>
       </div>`;
+    },
+    mount(root){
+      const car = root.querySelector('#kr-carousel');
+      if(!car || car.classList.contains('single')) return;
+      const cards = [...car.querySelectorAll('.kr-move')];
+      const count = root.querySelector('#kr-count'), dots = [...root.querySelectorAll('.kr-dot')];
+      const prev = root.querySelector('#kr-prev'), next = root.querySelector('#kr-next');
+      const step = () => cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : car.clientWidth;
+      const index = () => clamp(Math.round(car.scrollLeft / Math.max(1, step())), 0, cards.length-1);
+      const go = i => car.scrollTo({left: clamp(i,0,cards.length-1) * step(), behavior:'smooth'});
+      let raf = 0;
+      const sync = () => { raf = 0; const i = index(); count.textContent = `${i+1} of ${cards.length}`; dots.forEach((d,k)=>d.classList.toggle('on', k===i)); prev.disabled = i===0; next.disabled = i===cards.length-1; };
+      car.addEventListener('scroll', () => { if(!raf) raf = requestAnimationFrame(sync); }, {passive:true});
+      prev.onclick = () => go(index()-1); next.onclick = () => go(index()+1);
+      car.addEventListener('keydown', e => { if(e.key==='ArrowRight'){ e.preventDefault(); go(index()+1); } if(e.key==='ArrowLeft'){ e.preventDefault(); go(index()-1); } });
+      dots.forEach((d,k)=> d.onclick = () => go(k));
+      sync();
     },
     onContinue(){ goTo('cta'); }
   },
   detail: {
     render(){
-      const {inp, pillars, cands, moves} = LAST_REPORT;
-      const cards = CASCADE.map(key => buildPillarDetail(key, inp, pillars, cands, moves));
+      const {inp, cands, moves} = LAST_REPORT;
+      const cards = CASCADE.map(key => buildPillarDetail(key, inp, cands, moves));
       const items = cards.map(c => `<div class="acc">
           <div class="acc-head" ${c.picked && c.rank===0 ? 'data-priority-1' : ''} onclick="toggleAcc(this)">
-            <div class="acc-pillar-icon">${c.icon}</div>
             <div class="ttl">${c.title}${c.picked?`<span class="priority-tag">#${c.rank+1} priority</span>`:''}</div>
             <div class="sev-pill ${c.sevCls}">${c.sevLabel}</div>
             <svg class="acc-chev" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
           </div>
           <div class="acc-body"><div class="acc-body-in">
-            ${c.actionLine?`<div class="acc-action-hero"><span class="arrow">→</span>${c.actionLine}</div>`:''}
+            ${c.actionLine?`<div class="acc-action-hero">${c.actionLine}</div>`:''}
             ${c.visual}
-            <div class="stat-chips">${c.chips.map(ch=>`<div class="stat-chip"><span class="ic">${ch.ic}</span><span class="v">${ch.v}</span><span class="l">${ch.l}</span></div>`).join('')}</div>
-            ${c.note?`<div class="acc-caption" style="font-style:normal;color:var(--k-tradeoff)">ℹ️ ${c.note}</div>`:''}
+            ${c.chips.length?`<div class="stat-chips">${c.chips.map(ch=>`<div class="stat-chip"><span class="v">${ch.v}</span><span class="l">${ch.l}</span></div>`).join('')}</div>`:''}
+            ${c.note?`<div class="acc-caption" style="font-style:normal;color:var(--k-tradeoff)">${c.note}</div>`:''}
             <div class="acc-caption">${c.whyMatters}</div>
-            <div class="rank-reason"><span class="n">💡</span><span>${c.reason}</span></div>
+            <div class="rank-reason">${c.reason}</div>
           </div></div>
         </div>`).join('');
       return `<div class="screen" data-id="detail"><div class="screen-scroll">
         <div class="eyebrow"><span class="dot"></span>The full breakdown</div>
-        <h1 class="q-title">Every pillar, at a glance.</h1>
+        <h1 class="q-title">Where you stand, area by area.</h1>
         ${buildOverviewRing(cards)}
         ${items}
       </div>
-      <div class="btn-row"><button class="btn btn-ghost" onclick="goTo('summary')">← Back to report</button><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue →</button></div>
+      <div class="btn-row"><button class="btn btn-ghost" onclick="goTo('summary')">Back to report</button><button class="btn btn-primary" id="btn-continue" onclick="continueClick()">Continue →</button></div>
       </div>`;
     },
     mount(root){
@@ -366,6 +396,13 @@ export const SCREENS = {
   }
 };
 
+export function toggleMore(btn){
+  const box = btn.closest('.kr-more');
+  const body = box.querySelector('.kr-more-body');
+  const open = box.classList.toggle('open');
+  btn.setAttribute('aria-expanded', String(open));
+  body.style.maxHeight = open ? body.scrollHeight+'px' : null;
+}
 export function toggleAcc(headEl){
   const acc = headEl.closest('.acc');
   const body = acc.querySelector('.acc-body');

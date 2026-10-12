@@ -35,12 +35,6 @@ export function coverageToScore(r){
   if(r >= 0.50) return 55 + (r-0.50)/0.25*19;
   return clamp(r/0.50*54, 0, 54);
 }
-export function healthTarget(monthly_inc){
-  const a = monthly_inc*12/100000;
-  if(a <= 10) return 15;
-  if(a <= 25) return 15 + (a-10)/15*60;
-  return 75 + Math.min(1,(a-25)/175)*525;
-}
 export const PROT_W = [0.7, 1.0, 1.3, 1.5, 1.5];
 export function protWeight(deps){ return PROT_W[Math.min(deps,4)]; }
 export function protFloor(deps){ return deps===0 ? 0.10 : 0.05; }
@@ -58,7 +52,7 @@ export function calcWeights({deps, age}){
   return {savings:s, credit:c, investment:i, protection:p, enterprise:e};
 }
 export function calcPillars(inp){
-  const {liq, foi, crd, util, cvr, hlt, inv, age, deps, corpus, inc} = inp;
+  const {liq, foi, crd, util, inv, age, deps, corpus, lifeCover, healthCover, lifeNeed, healthNeed} = inp;
   const bt = bufTarget();
   const savings = clamp(liq/bt, 0, 1);
   let foirComp;
@@ -80,11 +74,12 @@ export function calcPillars(inp){
   if(age < 48)      investment = rateScore;
   else if(age >= 52) investment = Math.max(0.05, corpusScore);
   else { const t = (age-48)/4; investment = Math.max(0.05, rateScore*(1-t) + corpusScore*t); }
-  const life_r     = clamp(cvr/10, 0, 1.5);
+  // Cover is judged against what we would suggest for this person. With nobody depending on you, life cover is not needed.
+  const life_r     = lifeNeed > 0 ? clamp(lifeCover/lifeNeed, 0, 1.5) : 1;
   const prem_credit = clamp(Math.max(0, age-40)*0.006, 0, 0.20);
   const life_score  = coverageToScore(Math.min(life_r + prem_credit, 1.5));
-  const hc_target   = healthTarget(inc);
-  const health_r    = clamp(hlt/hc_target, 0, 1.5);
+  const hc_target   = healthNeed/1e5;
+  const health_r    = hc_target > 0 ? clamp((healthCover/1e5)/hc_target, 0, 1.5) : 1;
   const health_score = coverageToScore(health_r);
   const prot_raw  = 0.5*Math.min(life_score, health_score) + 0.5*(life_score+health_score)/2;
   const protection = clamp(Math.max(protFloor(deps), prot_raw/100), 0, 1);

@@ -7,7 +7,11 @@ import { updateProgress, updateSidePanel } from './ui/chrome'
 
 let currentScreenId = null;
 let screenHistory = [];
-const VALIDATORS = { 'inc-q': () => ST.income>0 && ST.spending>0 };
+// Owing nothing needs no limit. Owing something does: without it we cannot tell how much of it is in use.
+const VALIDATORS = {
+  'inc-q': () => ST.income>0 && ST.spending>0,
+  'crd-q2': () => ST.noCardBalance || !(ST.cardBalance>0) || ST.cardLimit>0,
+};
 
 export function continueClick(){ const s=SCREENS[currentScreenId]; if(s && s.onContinue) s.onContinue(); }
 export function goBack(){ const prev = screenHistory.pop(); if(prev) goTo(prev, true); }

@@ -45,13 +45,13 @@ export function incomeInsight(inc){
   // number ("top 2%") that implies a tier the copy below it disagrees with.
   const top = topRaw>=10 ? Math.round(topRaw) : topRaw>=1 ? Math.round(topRaw*2)/2 : +topRaw.toFixed(1);
   const p = 100-top;
-  // One metric, shown exactly once: the "top X%" figure is the hero number
-  // above this. Headline and body add new framing, never restate that digit.
+  // The "top X%" figure is the hero number above this and appears nowhere else. The headline and body
+  // are words only: a second number, even a rounder one, can only disagree with the first.
   let headline, body;
   if(p>=99.5){ headline="You're in the rarest tier of earners."; body=`A position almost no one in India ever reaches.`; }
   else if(p>=98){ headline="You're deep in India's top earners."; body=`A bracket most people never get close to.`; }
-  else if(p>=95){ headline="You're in top-5% territory."; body=`A position most Indian earners never reach.`; }
-  else if(p>=90){ headline="You're already ahead of 9 out of 10 Indians."; body=`Firmly in the country's upper income tier.`; }
+  else if(p>=95){ headline="You're among India's top earners."; body=`A position most Indian earners never reach.`; }
+  else if(p>=90){ headline="You're comfortably in India's upper income tier."; body=`Well ahead of most earners in the country.`; }
   else if(p>=75){ headline="You're earning more than most of India."; body=`Most of the country is earning less than you right now.`; }
   else if(p>=50){ headline="You're already earning more than half of India."; body=`You've cleared a bar most people are still working toward.`; }
   else { headline="This is exactly where most of India starts."; body=`You're not behind — you're building from a common, real starting point.`; }
@@ -61,8 +61,9 @@ export function incomeInsight(inc){
 // body always cashes it out as one concrete, non-abstract consequence (a
 // career break) instead of restating the number the big stat already shows.
 export function bufferInsight(liqFloor){
+  // The month count is the hero number on this screen, so it is not repeated in the sentence.
   const breakLine = liqFloor >= 1
-    ? `Even taking a ${liqFloor}-month break wouldn't hurt you financially.`
+    ? `Even a long break from work wouldn't hurt you financially.`
     : `Right now, even a short break could really hurt — that's exactly what this fixes.`;
   if(liqFloor<=0) return {headline:"Most people start exactly here.", body: breakLine};
   if(liqFloor<3) return {headline:"You've already started — the hardest part.", body: breakLine};
@@ -93,7 +94,7 @@ export function creditInsight(pillars){
   return {band, pct, headline, body, weakest};
 }
 export function insuranceInsight(inp, pillars){
-  const hasLife = inp.cvr>0, hasHealth = inp.hlt>0;
+  const hasLife = inp.lifeCover>0, hasHealth = inp.healthCover>0;
   const lifeOk = pillars.life_score>=78, healthOk = pillars.health_score>=78;
   // Life cover only protects people who depend on your income — with none,
   // it's genuinely not being weighed, not silently ignored. Said outright so
@@ -106,4 +107,16 @@ export function insuranceInsight(inp, pillars){
     return {headline:"You've already started — most people haven't.", body:`You're part of a rising minority. Next, let's make sure the cover is enough.`, note};
   }
   return {headline:"You're not alone — and that's exactly why this matters.", body:`Most Indian families are one bad diagnosis away from real financial damage.`, note};
+}
+
+// What to say under the two card fields as the person types: how much of the limit is in use, in plain words,
+// and a nudge when the pair of numbers cannot be right.
+export function cardUsage(balance: number, limit: number){
+  if(!(balance > 0) && !(limit > 0)) return {pct:0, level:'none', text:''};
+  if(!(limit > 0)) return {pct:0, level:'needLimit', text:"Add your total limit so we can work out how much of it you're using."};
+  const pct = Math.round(balance/limit*100);
+  if(balance > limit*1.05) return {pct, level:'over', text:"That's more than your limit. Please double-check both numbers."};
+  if(pct <= 30) return {pct, level:'ok', text:`That's ${pct}% of your limit. A healthy level.`};
+  if(pct <= 60) return {pct, level:'high', text:`That's ${pct}% of your limit. On the high side.`};
+  return {pct, level:'veryHigh', text:`That's ${pct}% of your limit. High enough to pull your credit score down.`};
 }

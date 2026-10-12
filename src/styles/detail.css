@@ -9,18 +9,14 @@
 .ring-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;width:100%}
 .ring-legend-item{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--k-ink-soft);font-weight:600}
 .ring-legend-item .dot{width:8px;height:8px;border-radius:50%;flex:none}
-.ring-legend-item .ic{flex:none}
-.acc-action-hero{display:flex;align-items:baseline;gap:8px;font-size:15px;font-weight:700;color:var(--k-ink);line-height:1.4;margin-bottom:14px}
-.acc-action-hero .arrow{color:var(--k-accent);flex:none}
+.acc-action-hero{font-size:15px;font-weight:700;color:var(--k-ink);line-height:1.4;margin-bottom:14px}
 .stat-chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .stat-chip{display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--k-raised);border-radius:12px;padding:10px 12px;flex:1;min-width:70px;text-align:center}
-.stat-chip .ic{font-size:15px}
 .stat-chip .v{font-size:14px;font-weight:800;color:var(--k-ink);font-family:var(--k-display);white-space:nowrap}
 .stat-chip .l{font-size:9px;color:var(--k-muted);font-weight:700;text-transform:uppercase;letter-spacing:.2px}
 .acc-caption{font-size:12px;color:var(--k-muted);line-height:1.5;margin-bottom:12px;font-style:italic}
 .acc{border:1px solid var(--k-line);border-radius:16px;margin-bottom:10px;overflow:hidden;background:var(--k-surface)}
 .acc-head{display:flex;align-items:center;gap:12px;padding:15px 16px;cursor:pointer;user-select:none}
-.acc-pillar-icon{width:32px;height:32px;border-radius:10px;background:var(--k-raised);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
 .acc-head .ttl{flex:1;font-size:14px;font-weight:700;display:flex;align-items:center;flex-wrap:wrap;gap:7px}
 .priority-tag{font-size:9.5px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:var(--k-accent-ink);background:var(--k-accent-soft);border-radius:100px;padding:2px 8px}
 .acc-head .sev-pill{font-size:10px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:3px 9px;border-radius:100px;flex:none}
@@ -35,8 +31,7 @@
 .acc-row{margin-bottom:12px}
 .acc-row .k{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:var(--k-muted);margin-bottom:5px}
 .acc-row .v{font-size:13px;color:var(--k-ink-soft);line-height:1.55}
-.rank-reason{background:var(--k-raised);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--k-ink-soft);line-height:1.5;display:flex;gap:8px}
-.rank-reason .n{flex:none}
+.rank-reason{background:var(--k-raised);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--k-ink-soft);line-height:1.5}
 
 /* ── App CTA screen ─────────────────────────────────────────── */
 .cta-screen{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;background:radial-gradient(circle at 50% 20%,var(--k-accent-soft),var(--k-ground) 65%);border-radius:20px}
@@ -77,3 +72,18 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 .notify-error{min-height:0;color:var(--k-harm);font-size:12.5px;font-weight:700;text-align:center}
 .notify-error:empty{display:none}
 .notify-consent{color:var(--k-muted);font-size:11.5px;line-height:1.5;text-align:center}
+
+/* ── Credit health, broken into the three things behind it ── */
+.cred-parts{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.cred-lead{font-size:13px;line-height:1.5;color:var(--k-ink-soft)}
+.cred-lead b{color:var(--k-ink)}
+.cred-row{background:var(--k-raised);border-radius:12px;padding:12px 14px}
+.cred-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:3px}
+.cred-name{font-size:13.5px;font-weight:700}
+.cred-tag{font-size:10px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:2px 9px;border-radius:100px;flex:none}
+.cred-tag.good{background:var(--k-safe-bg);color:var(--k-safe)}
+.cred-tag.fair{background:var(--k-tradeoff-bg);color:var(--k-tradeoff)}
+.cred-tag.weak{background:var(--k-harm-bg);color:var(--k-harm)}
+.cred-val{font-size:15px;font-weight:700;margin-bottom:4px}
+.cred-do{font-size:12.5px;line-height:1.5;color:var(--k-ink-soft)}
+.cred-do b{color:var(--k-accent-ink)}

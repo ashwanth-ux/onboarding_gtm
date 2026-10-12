@@ -25,14 +25,11 @@ describe('incomeInsight copy', () => {
   const sweep: number[] = []
   for (let inc = 500; inc <= 2_000_000; inc += 250) sweep.push(inc)
 
-  it('shows the quantified claim once: headline and body never restate it', () => {
+  it('shows the percentage once, as the hero: the headline and body contain no numbers at all', () => {
     for (const inc of sweep) {
       const r = incomeInsight(inc)
-      const digits = new RegExp(`(^|[^\\d.])${String(r.top).replace('.', '\\.')}\\s?%`)
-      // "top-5% territory" is a fixed tier name, not a restatement of the user's own figure
-      const headline = r.headline.replace('top-5% territory', '')
-      expect(digits.test(headline), `${inc}: ${r.headline}`).toBe(false)
-      expect(digits.test(r.body), `${inc}: ${r.body}`).toBe(false)
+      expect(r.headline, `${inc}: ${r.headline}`).not.toMatch(/\d/)
+      expect(r.body, `${inc}: ${r.body}`).not.toMatch(/\d/)
     }
   })
 
@@ -53,7 +50,7 @@ describe('incomeInsight copy', () => {
 })
 
 describe('creditInsight', () => {
-  const inp = { inc: 100000, spend: 50000, liq: 3, foi: 20, crd: 700, util: 30, cvr: 5, hlt: 5, inv: 10, age: 30, corpus: 0, deps: 0 }
+  const inp = { inc: 100000, spend: 50000, liq: 3, foi: 20, crd: 700, util: 30, inv: 10, age: 30, corpus: 0, deps: 0 }
 
   it('names the weakest factor, capitalised, and explains it', () => {
     const r = creditInsight(calcPillars({ ...inp, util: 95, crd: 800, foi: 5 }))
@@ -70,6 +67,14 @@ describe('creditInsight', () => {
 })
 
 describe('bufferInsight', () => {
+  it('never repeats the month count that the screen already shows as its hero number', () => {
+    for (let m = 0; m <= 60; m++) {
+      const r = bufferInsight(m)
+      expect(r.headline, `${m}`).not.toMatch(/\d/)
+      expect(r.body, `${m}`).not.toMatch(/\d/)
+    }
+  })
+
   it('always returns a headline and body, including for zero months', () => {
     for (const m of [0, 0.4, 1, 3, 6, 12, 60]) {
       const r = bufferInsight(m)

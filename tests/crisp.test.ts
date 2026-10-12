@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SEVERITY, calcFRI, calcPillars, calcWeights, whatIfFri } from '../src/engine/crisp'
 
-const base = { inc: 100000, spend: 60000, liq: 3, foi: 20, crd: 700, util: 30, cvr: 5, hlt: 5, inv: 10, age: 30, corpus: 0, deps: 1 }
+const base = { inc: 100000, spend: 60000, liq: 3, foi: 20, crd: 700, util: 30, inv: 10, age: 30, corpus: 0, deps: 1, lifeCover: 0, healthCover: 0, lifeNeed: 8_000_000, healthNeed: 2_500_000 }
 
 describe('SEVERITY', () => {
   it('bands a 0-1 score at 0.35 / 0.55 / 0.80', () => {
@@ -16,8 +16,8 @@ describe('SEVERITY', () => {
 
 describe('calcPillars', () => {
   it('scores every pillar between 0 and 1', () => {
-    for (const liq of [0, 1, 6, 60]) for (const foi of [0, 30, 100]) for (const hlt of [0, 5, 100000]) {
-      const p = calcPillars({ ...base, liq, foi, hlt })
+    for (const liq of [0, 1, 6, 60]) for (const foi of [0, 30, 100]) for (const healthCover of [0, 500_000, 1e10]) {
+      const p = calcPillars({ ...base, liq, foi, healthCover })
       for (const k of ['savings', 'credit', 'investment', 'protection']) {
         expect(p[k]).toBeGreaterThanOrEqual(0)
         expect(p[k]).toBeLessThanOrEqual(1)
@@ -30,6 +30,21 @@ describe('calcPillars', () => {
     expect(typeof p.credit_foir).toBe('number')
     expect(typeof p.credit_bureau).toBe('number')
     expect(typeof p.credit_util).toBe('number')
+  })
+
+  it('judges insurance against the cover we would suggest for this person', () => {
+    const none = calcPillars({ ...base })
+    const half = calcPillars({ ...base, lifeCover: 4_000_000, healthCover: 1_250_000 })
+    const full = calcPillars({ ...base, lifeCover: 8_000_000, healthCover: 2_500_000 })
+    expect(half.protection).toBeGreaterThan(none.protection)
+    expect(full.protection).toBeGreaterThan(half.protection)
+    expect(full.life_score).toBeGreaterThanOrEqual(90)
+    expect(full.health_score).toBeGreaterThanOrEqual(90)
+  })
+
+  it('does not mark someone down for missing life cover when nobody depends on them', () => {
+    const p = calcPillars({ ...base, deps: 0, lifeNeed: 0, lifeCover: 0, healthCover: 2_500_000 })
+    expect(p.life_score).toBeGreaterThanOrEqual(90)
   })
 
   it('scores a better savings buffer higher', () => {

@@ -1,3 +1,5 @@
+import { coverNeeds } from './engine/cover'
+
 export const ST = { age:28, deps:0, income:0, spending:0, savings:0, sip:0, retirementCorpus:0,
   emi:0, knownScore:null, cardBalance:0, cardLimit:0, noCardBalance:false, lifeCover:0, healthCover:0 };
 
@@ -14,8 +16,10 @@ export function deriveInp(){
   const inv = inc>0 ? Math.min(60, Math.round(ST.sip/inc*100)) : 0;
   const util = (ST.noCardBalance || ST.cardLimit<=0) ? 0 : Math.min(100, Math.round(ST.cardBalance/ST.cardLimit*100));
   const crd = ST.knownScore != null ? ST.knownScore : 700;
-  const cvr = inc>0 ? Math.min(50, +(ST.lifeCover/(inc*12)).toFixed(1)) : 0;
-  const hlt = Math.min(100000, +(ST.healthCover/1e5).toFixed(1));
   const corpus = (ST.age>=50 && spend>0) ? Math.min(60, +(ST.retirementCorpus/(spend*12)).toFixed(1)) : 0;
-  return {inc, spend, liq, foi, crd, util, cvr, hlt, inv, age:ST.age, corpus, deps:ST.deps};
+  // Cover to suggest comes from the insurance guide's rules (see engine/cover.ts), not a flat multiple of income.
+  const need = coverNeeds({age:ST.age, deps:ST.deps, income:inc, spending:spend, savings:ST.savings, emi:ST.emi, retirement:ST.retirementCorpus});
+  return {inc, spend, liq, foi, crd, util, inv, age:ST.age, corpus, deps:ST.deps,
+    lifeCover:ST.lifeCover, healthCover:ST.healthCover, lifeNeed:need.life, healthNeed:need.health,
+    healthBase:need.healthBase, healthYearlyCost:need.healthYearlyCost};
 }

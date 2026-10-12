@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { postLead } from '../src/api'
+import { Rejected, postLead } from '../src/api'
 import { calcFRI, calcPillars, calcWeights } from '../src/engine/crisp'
 import { krCandidates, krPrioritise } from '../src/engine/report'
 import { LEAD_COLUMNS, PAYLOAD_KEYS, buildLead, newSession, normaliseEmail, normalisePhone } from '../src/lead'
@@ -124,6 +124,13 @@ describe('postLead', () => {
   it('surfaces a refusal from the sheet', async () => {
     const f = vi.fn().mockResolvedValue(ok({ ok: false, error: 'bad phone' }))
     await expect(postLead('https://script.example/exec', lead, f)).rejects.toThrow('bad phone')
+    expect(f).toHaveBeenCalledTimes(1)
+  })
+  it('treats a script-side failure as temporary, not as a refusal', async () => {
+    const f = vi.fn().mockResolvedValue(ok({ ok: false, error: 'server' }))
+    const err = await postLead('https://script.example/exec', lead, f).catch((e) => e)
+    expect(err).toBeInstanceOf(Error)
+    expect(err).not.toBeInstanceOf(Rejected)
     expect(f).toHaveBeenCalledTimes(1)
   })
   it('does not claim success when the server itself errors', async () => {

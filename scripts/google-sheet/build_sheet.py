@@ -147,7 +147,9 @@ def line(label, formula, fmt='#,##0'):
     sm.row_dimensions[r].height = 24; r += 1
 section('Volume')
 line('Submissions', f'=COUNTA({S("phone")})')
-line('Unique people (by phone)', f'=SUMPRODUCT(({S("phone")}<>"")/COUNTIF({S("phone")},{S("phone")}&""))')
+# COUNTUNIQUE is Google-only but linear; the portable SUMPRODUCT/COUNTIF version is quadratic and
+# made every write to the sheet take tens of seconds. (LibreOffice previews show 0 for this one cell.)
+line('Unique people (by phone)', f'=IFERROR(COUNTUNIQUE({S("phone")}),0)')
 line('Last 7 days', f'=COUNTIFS({S("submittedAt")},">="&(NOW()-7))')
 line('Last 24 hours', f'=COUNTIFS({S("submittedAt")},">="&(NOW()-1))')
 r += 1; section('Who they are')
